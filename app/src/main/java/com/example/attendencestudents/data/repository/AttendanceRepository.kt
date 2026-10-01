@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import java.util.UUID
 
 class AttendanceRepository(
-    private val mongoClientManager: MongoClientManager = MongoClientManager()
+    val mongoClientManager: MongoClientManager = MongoClientManager()
 ) {
 
     private val _students = MutableStateFlow<List<Student>>(emptyList())
@@ -35,34 +35,34 @@ class AttendanceRepository(
         _isSyncing.value = true
         _syncStatus.value = "Fetching from MongoDB Atlas..."
 
-        var errorsCount = 0
+        var lastErr = ""
 
         val remoteStudentsResult = mongoClientManager.fetchStudents()
         if (remoteStudentsResult.isSuccess) {
             _students.value = remoteStudentsResult.getOrDefault(emptyList())
         } else {
-            errorsCount++
+            lastErr = remoteStudentsResult.exceptionOrNull()?.message ?: "Error fetching students"
         }
 
         val remoteAttendanceResult = mongoClientManager.fetchAttendanceRecords()
         if (remoteAttendanceResult.isSuccess) {
             _attendanceRecords.value = remoteAttendanceResult.getOrDefault(emptyList())
-        } else {
-            errorsCount++
+        } else if (lastErr.isEmpty()) {
+            lastErr = remoteAttendanceResult.exceptionOrNull()?.message ?: "Error fetching attendance"
         }
 
         val remoteActivityResult = mongoClientManager.fetchActivityLogs()
         if (remoteActivityResult.isSuccess) {
             _activityLogs.value = remoteActivityResult.getOrDefault(emptyList())
-        } else {
-            errorsCount++
+        } else if (lastErr.isEmpty()) {
+            lastErr = remoteActivityResult.exceptionOrNull()?.message ?: "Error fetching activity"
         }
 
         _isSyncing.value = false
-        if (errorsCount == 0) {
+        if (lastErr.isEmpty()) {
             _syncStatus.value = "Synced with MongoDB Live"
         } else {
-            _syncStatus.value = "MongoDB Connection Error"
+            _syncStatus.value = "MongoDB Error: $lastErr"
         }
     }
 

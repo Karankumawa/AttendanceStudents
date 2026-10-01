@@ -19,12 +19,16 @@ import java.util.concurrent.TimeUnit
 
 object MongoConfig {
     var passwordOverride: String = ""
-    const val RAW_URI = "mongodb+srv://karankumawat640_db_user:<db_password>@studentdata.sfaysfb.mongodb.net/?appName=StudentData&compressors=zlib"
+
+    // Direct shard node connection string that bypasses JNDI SRV DNS lookup on Android devices
+    const val DIRECT_URI = "mongodb://karankumawat640_db_user:<db_password>@studentdata-shard-00-00.sfaysfb.mongodb.net:27017,studentdata-shard-00-01.sfaysfb.mongodb.net:27017,studentdata-shard-00-02.sfaysfb.mongodb.net:27017/StudentAttendanceDB?ssl=true&authSource=admin&retryWrites=true&w=majority"
+    const val SRV_URI = "mongodb+srv://karankumawat640_db_user:<db_password>@studentdata.sfaysfb.mongodb.net/StudentAttendanceDB?retryWrites=true&w=majority"
+
     const val DEFAULT_PASSWORD = "admin"
 
     fun getEffectiveUri(): String {
-        val pwd = if (passwordOverride.isNotBlank()) passwordOverride else DEFAULT_PASSWORD
-        return RAW_URI.replace("<db_password>", pwd)
+        val pwd = if (passwordOverride.isNotBlank()) passwordOverride.trim() else DEFAULT_PASSWORD
+        return DIRECT_URI.replace("<db_password>", pwd)
     }
 
     const val DATABASE_NAME = "StudentAttendanceDB"
@@ -37,6 +41,7 @@ class MongoClientManager {
 
     private val gson = Gson()
     private var mongoClient: MongoClient? = null
+    private var lastConnectionError: String? = null
 
     @Synchronized
     private fun getDatabase(): MongoDatabase? {
@@ -46,22 +51,24 @@ class MongoClientManager {
                 val settings = MongoClientSettings.builder()
                     .applyConnectionString(connectionString)
                     .applyToSocketSettings { builder ->
-                        builder.connectTimeout(10, TimeUnit.SECONDS)
-                        builder.readTimeout(10, TimeUnit.SECONDS)
+                        builder.connectTimeout(12, TimeUnit.SECONDS)
+                        builder.readTimeout(12, TimeUnit.SECONDS)
                     }
                     .build()
                 mongoClient = MongoClients.create(settings)
             }
+            lastConnectionError = null
             mongoClient?.getDatabase(MongoConfig.DATABASE_NAME)
         } catch (t: Throwable) {
             t.printStackTrace()
+            lastConnectionError = t.message ?: t.toString()
             null
         }
     }
 
     suspend fun fetchStudents(): Result<List<Student>> = withContext(Dispatchers.IO) {
         try {
-            val db = getDatabase() ?: return@withContext Result.failure(Exception("Could not connect to MongoDB Atlas"))
+            val db = getDatabase() ?: return@withContext Result.failure(Exception(lastConnectionError ?: "Could not connect to MongoDB Atlas"))
             val collection: MongoCollection<Document> = db.getCollection(MongoConfig.COLLECTION_STUDENTS)
             val list = mutableListOf<Student>()
             collection.find().forEach { doc ->
@@ -71,13 +78,13 @@ class MongoClientManager {
             }
             Result.success(list)
         } catch (t: Throwable) {
-            Result.failure(Exception(t.message ?: "MongoDB Error"))
+            Result.failure(Exception(t.message ?: t.toString()))
         }
     }
 
     suspend fun insertStudent(student: Student): Result<Student> = withContext(Dispatchers.IO) {
         try {
-            val db = getDatabase() ?: return@withContext Result.failure(Exception("Could not connect to MongoDB Atlas"))
+            val db = getDatabase() ?: return@withContext Result.failure(Exception(lastConnectionError ?: "Could not connect to MongoDB Atlas"))
             val collection: MongoCollection<Document> = db.getCollection(MongoConfig.COLLECTION_STUDENTS)
             val json = gson.toJson(student)
             val doc = Document.parse(json)
@@ -85,13 +92,13 @@ class MongoClientManager {
             collection.replaceOne(query, doc, ReplaceOptions().upsert(true))
             Result.success(student)
         } catch (t: Throwable) {
-            Result.failure(Exception(t.message ?: "MongoDB Insert Error"))
+            Result.failure(Exception(t.message ?: t.toString()))
         }
     }
 
     suspend fun fetchAttendanceRecords(): Result<List<AttendanceRecord>> = withContext(Dispatchers.IO) {
         try {
-            val db = getDatabase() ?: return@withContext Result.failure(Exception("Could not connect to MongoDB Atlas"))
+            val db = getDatabase() ?: return@withContext Result.failure(Exception(lastConnectionError ?: "Could not connect to MongoDB Atlas"))
             val collection: MongoCollection<Document> = db.getCollection(MongoConfig.COLLECTION_ATTENDANCE)
             val list = mutableListOf<AttendanceRecord>()
             collection.find().forEach { doc ->
@@ -101,13 +108,13 @@ class MongoClientManager {
             }
             Result.success(list)
         } catch (t: Throwable) {
-            Result.failure(Exception(t.message ?: "MongoDB Error"))
+            Result.failure(Exception(t.message ?: t.toString()))
         }
     }
 
     suspend fun insertAttendanceRecords(records: List<AttendanceRecord>): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
-            val db = getDatabase() ?: return@withContext Result.failure(Exception("Could not connect to MongoDB Atlas"))
+            val db = getDatabase() ?: return@withContext Result.failure(Exception(lastConnectionError ?: "Could not connect to MongoDB Atlas"))
             val collection: MongoCollection<Document> = db.getCollection(MongoConfig.COLLECTION_ATTENDANCE)
             records.forEach { record ->
                 val json = gson.toJson(record)
@@ -117,13 +124,13 @@ class MongoClientManager {
             }
             Result.success(true)
         } catch (t: Throwable) {
-            Result.failure(Exception(t.message ?: "MongoDB Insert Error"))
+            Result.failure(Exception(t.message ?: t.toString()))
         }
     }
 
     suspend fun fetchActivityLogs(): Result<List<ActivityLog>> = withContext(Dispatchers.IO) {
         try {
-            val db = getDatabase() ?: return@withContext Result.failure(Exception("Could not connect to MongoDB Atlas"))
+            val db = getDatabase() ?: return@withContext Result.failure(Exception(lastConnectionError ?: "Could not connect to MongoDB Atlas"))
             val collection: MongoCollection<Document> = db.getCollection(MongoConfig.COLLECTION_ACTIVITY)
             val list = mutableListOf<ActivityLog>()
             collection.find().sort(Sorts.descending("timestamp")).forEach { doc ->
@@ -133,13 +140,13 @@ class MongoClientManager {
             }
             Result.success(list)
         } catch (t: Throwable) {
-            Result.failure(Exception(t.message ?: "MongoDB Error"))
+            Result.failure(Exception(t.message ?: t.toString()))
         }
     }
 
     suspend fun insertActivityLog(log: ActivityLog): Result<ActivityLog> = withContext(Dispatchers.IO) {
         try {
-            val db = getDatabase() ?: return@withContext Result.failure(Exception("Could not connect to MongoDB Atlas"))
+            val db = getDatabase() ?: return@withContext Result.failure(Exception(lastConnectionError ?: "Could not connect to MongoDB Atlas"))
             val collection: MongoCollection<Document> = db.getCollection(MongoConfig.COLLECTION_ACTIVITY)
             val json = gson.toJson(log)
             val doc = Document.parse(json)
@@ -147,7 +154,7 @@ class MongoClientManager {
             collection.replaceOne(query, doc, ReplaceOptions().upsert(true))
             Result.success(log)
         } catch (t: Throwable) {
-            Result.failure(Exception(t.message ?: "MongoDB Insert Error"))
+            Result.failure(Exception(t.message ?: t.toString()))
         }
     }
 
