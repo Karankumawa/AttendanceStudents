@@ -20,14 +20,12 @@ import java.util.concurrent.TimeUnit
 object MongoConfig {
     var passwordOverride: String = ""
 
-    // Direct shard node connection string for Cluster: StudentData -> Database: AttendanceData
-    const val DIRECT_URI = "mongodb://karankumawat640_db_user:<db_password>@studentdata-shard-00-00.sfaysfb.mongodb.net:27017,studentdata-shard-00-01.sfaysfb.mongodb.net:27017,studentdata-shard-00-02.sfaysfb.mongodb.net:27017/AttendanceData?ssl=true&authSource=admin&retryWrites=true&w=majority"
-
+    const val SRV_URI = "mongodb+srv://karankumawat640_db_user:<db_password>@studentdata.sfaysfb.mongodb.net/AttendanceData?retryWrites=true&w=majority"
     const val DEFAULT_PASSWORD = "admin"
 
     fun getEffectiveUri(): String {
         val pwd = if (passwordOverride.isNotBlank()) passwordOverride.trim() else DEFAULT_PASSWORD
-        return DIRECT_URI.replace("<db_password>", pwd)
+        return SRV_URI.replace("<db_password>", pwd)
     }
 
     const val DATABASE_NAME = "AttendanceData"
