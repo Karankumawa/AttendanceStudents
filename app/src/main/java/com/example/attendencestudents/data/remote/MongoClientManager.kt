@@ -20,10 +20,20 @@ import java.util.concurrent.TimeUnit
 object MongoConfig {
     var passwordOverride: String = ""
 
+    // Direct seedlist URI that NEVER triggers javax.naming.directory.InitialDirContext JNDI lookup
+    const val DIRECT_URI = "mongodb://karankumawat640_db_user:<db_password>@studentdata-shard-00-00.sfaysfb.mongodb.net:27017,studentdata-shard-00-01.sfaysfb.mongodb.net:27017,studentdata-shard-00-02.sfaysfb.mongodb.net:27017/AttendanceData?ssl=true&authSource=admin&retryWrites=true&w=majority"
+    
+    // SRV URI fallback
     const val SRV_URI = "mongodb+srv://karankumawat640_db_user:<db_password>@studentdata.sfaysfb.mongodb.net/AttendanceData?retryWrites=true&w=majority"
+
     const val DEFAULT_PASSWORD = "admin"
 
-    fun getEffectiveUri(): String {
+    fun getDirectUri(): String {
+        val pwd = if (passwordOverride.isNotBlank()) passwordOverride.trim() else DEFAULT_PASSWORD
+        return DIRECT_URI.replace("<db_password>", pwd)
+    }
+
+    fun getSrvUri(): String {
         val pwd = if (passwordOverride.isNotBlank()) passwordOverride.trim() else DEFAULT_PASSWORD
         return SRV_URI.replace("<db_password>", pwd)
     }
@@ -42,32 +52,51 @@ class MongoClientManager {
 
     @Synchronized
     private fun getDatabase(): MongoDatabase? {
-        return try {
-            if (mongoClient == null) {
-                val connectionString = ConnectionString(MongoConfig.getEffectiveUri())
+        if (mongoClient != null) {
+            return try {
+                mongoClient?.getDatabase(MongoConfig.DATABASE_NAME)
+            } catch (t: Throwable) {
+                mongoClient = null
+                null
+            }
+        }
+
+        // Try direct seedlist URI first to completely bypass InitialDirContext/JNDI on Android
+        val urisToTry = listOf(
+            MongoConfig.getDirectUri(),
+            MongoConfig.getSrvUri()
+        )
+
+        for (uri in urisToTry) {
+            try {
+                val connectionString = ConnectionString(uri)
                 val settings = MongoClientSettings.builder()
                     .applyConnectionString(connectionString)
                     .applyToSocketSettings { builder ->
-                        builder.connectTimeout(5, TimeUnit.SECONDS)
-                        builder.readTimeout(5, TimeUnit.SECONDS)
+                        builder.connectTimeout(6, TimeUnit.SECONDS)
+                        builder.readTimeout(6, TimeUnit.SECONDS)
                     }
                     .applyToClusterSettings { builder ->
-                        builder.serverSelectionTimeout(5, TimeUnit.SECONDS)
+                        builder.serverSelectionTimeout(6, TimeUnit.SECONDS)
                     }
                     .build()
-                mongoClient = MongoClients.create(settings)
+                val client = MongoClients.create(settings)
+                val db = client.getDatabase(MongoConfig.DATABASE_NAME)
+                mongoClient = client
+                lastConnectionError = null
+                return db
+            } catch (t: Throwable) {
+                t.printStackTrace()
+                lastConnectionError = cleanErrorMessage(t.message ?: t.toString())
             }
-            lastConnectionError = null
-            mongoClient?.getDatabase(MongoConfig.DATABASE_NAME)
-        } catch (t: Throwable) {
-            t.printStackTrace()
-            lastConnectionError = cleanErrorMessage(t.message ?: t.toString())
-            null
         }
+        return null
     }
 
     private fun cleanErrorMessage(rawMsg: String): String {
         return when {
+            rawMsg.contains("InitialDirContext") || rawMsg.contains("javax.naming") ->
+                "Connecting via Direct Cluster Nodes..."
             rawMsg.contains("ReadPreferenceServerSelector") || rawMsg.contains("UnknownHostException") ->
                 "MongoDB Atlas Connection Timeout. Allow IP 0.0.0.0/0 in Atlas Network Access."
             rawMsg.contains("AuthenticationFailed") || rawMsg.contains("Authentication failed") ->
