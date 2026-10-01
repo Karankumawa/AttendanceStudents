@@ -54,7 +54,7 @@ import androidx.compose.ui.unit.sp
 fun LoginScreen(
     onLoginSuccess: (String, String) -> Result<Boolean>
 ) {
-    // Empty fields by default - no hardcoded credentials shown on screen
+    // Empty fields by default - 100% blank without placeholder or pre-filled values
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -132,7 +132,7 @@ fun LoginScreen(
 
                         Spacer(modifier = Modifier.height(18.dp))
 
-                        // Email Field
+                        // Email Field (100% Blank, no placeholder, disabled autofill semantics)
                         OutlinedTextField(
                             value = email,
                             onValueChange = {
@@ -140,13 +140,15 @@ fun LoginScreen(
                                 errorMessage = null
                             },
                             label = { Text("Admin Email") },
-                            placeholder = { Text("admin@admin.com") },
                             leadingIcon = {
                                 Icon(Icons.Default.Email, contentDescription = "Email")
                             },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Email,
+                                autoCorrectEnabled = false
+                            ),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = MaterialTheme.colorScheme.primary
                             )
@@ -154,7 +156,7 @@ fun LoginScreen(
 
                         Spacer(modifier = Modifier.height(14.dp))
 
-                        // Password Field
+                        // Password Field (100% Blank, no placeholder, disabled autofill semantics)
                         OutlinedTextField(
                             value = password,
                             onValueChange = {
@@ -162,7 +164,6 @@ fun LoginScreen(
                                 errorMessage = null
                             },
                             label = { Text("Password") },
-                            placeholder = { Text("••••••••") },
                             leadingIcon = {
                                 Icon(Icons.Default.Lock, contentDescription = "Password")
                             },
@@ -177,7 +178,10 @@ fun LoginScreen(
                             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                autoCorrectEnabled = false
+                            )
                         )
 
                         if (errorMessage != null) {
