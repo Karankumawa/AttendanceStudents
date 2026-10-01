@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -46,10 +45,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.attendencestudents.data.auth.UserRole
 import com.example.attendencestudents.ui.activity.ActivityScreen
 import com.example.attendencestudents.ui.attendance.TakeAttendanceScreen
 import com.example.attendencestudents.ui.auth.LoginScreen
 import com.example.attendencestudents.ui.stats.SemesterStatsScreen
+import com.example.attendencestudents.ui.studentportal.StudentPortalScreen
 import com.example.attendencestudents.ui.students.StudentsScreen
 
 enum class NavSection(val title: String, val icon: ImageVector) {
@@ -86,6 +87,8 @@ fun MainContainer(
             }
         )
     } else {
+        val isStudentRole = currentUser?.role == UserRole.STUDENT
+
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
@@ -93,24 +96,24 @@ fun MainContainer(
                     title = {
                         Column {
                             Text(
-                                text = "Attendance Portal",
+                                text = if (isStudentRole) "Student Attendance Portal" else "Attendance Portal (Admin)",
                                 style = MaterialTheme.typography.titleLarge.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 18.sp
                                 )
                             )
                             Text(
-                                text = "Logged as: ${currentUser?.email ?: "admin@admin.com"}",
+                                text = "Logged in as: ${currentUser?.email ?: "user"}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     },
                     actions = {
-                        // Supabase Sync Badge
+                        // Role / Read-Only Badge
                         Surface(
                             shape = RoundedCornerShape(16.dp),
-                            color = Color(0xFF10B981).copy(alpha = 0.15f),
+                            color = if (isStudentRole) MaterialTheme.colorScheme.tertiaryContainer else Color(0xFF10B981).copy(alpha = 0.15f),
                             modifier = Modifier.padding(end = 8.dp)
                         ) {
                             Row(
@@ -120,14 +123,14 @@ fun MainContainer(
                                 Icon(
                                     imageVector = if (isSyncing) Icons.Default.CloudSync else Icons.Default.CloudDone,
                                     contentDescription = null,
-                                    tint = Color(0xFF047857),
+                                    tint = if (isStudentRole) MaterialTheme.colorScheme.onTertiaryContainer else Color(0xFF047857),
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = if (isSyncing) "Syncing..." else "Supabase Live",
+                                    text = if (isStudentRole) "Student (Read-Only)" else if (isSyncing) "Syncing..." else "Supabase Live",
                                     style = MaterialTheme.typography.labelSmall.copy(
-                                        color = Color(0xFF047857),
+                                        color = if (isStudentRole) MaterialTheme.colorScheme.onTertiaryContainer else Color(0xFF047857),
                                         fontWeight = FontWeight.Bold
                                     )
                                 )
@@ -138,7 +141,7 @@ fun MainContainer(
                         IconButton(onClick = { viewModel.logout() }) {
                             Icon(
                                 imageVector = Icons.Default.Logout,
-                                contentDescription = "Logout Admin",
+                                contentDescription = "Logout",
                                 tint = MaterialTheme.colorScheme.error
                             )
                         }
@@ -149,34 +152,36 @@ fun MainContainer(
                 )
             },
             bottomBar = {
-                NavigationBar(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 8.dp
-                ) {
-                    NavSection.values().forEach { section ->
-                        val selected = currentSection == section
-                        NavigationBarItem(
-                            selected = selected,
-                            onClick = { currentSection = section },
-                            icon = {
-                                Icon(
-                                    imageVector = section.icon,
-                                    contentDescription = section.title
-                                )
-                            },
-                            label = {
-                                Text(
-                                    text = section.title,
-                                    style = MaterialTheme.typography.labelMedium.copy(
-                                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                if (!isStudentRole) {
+                    NavigationBar(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 8.dp
+                    ) {
+                        NavSection.entries.forEach { section ->
+                            val selected = currentSection == section
+                            NavigationBarItem(
+                                selected = selected,
+                                onClick = { currentSection = section },
+                                icon = {
+                                    Icon(
+                                        imageVector = section.icon,
+                                        contentDescription = section.title
                                     )
+                                },
+                                label = {
+                                    Text(
+                                        text = section.title,
+                                        style = MaterialTheme.typography.labelMedium.copy(
+                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    )
+                                },
+                                colors = NavigationBarItemDefaults.colors(
+                                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                                    selectedTextColor = MaterialTheme.colorScheme.primary
                                 )
-                            },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = MaterialTheme.colorScheme.primary,
-                                selectedTextColor = MaterialTheme.colorScheme.primary
                             )
-                        )
+                        }
                     }
                 }
             }
@@ -186,21 +191,27 @@ fun MainContainer(
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
-                when (currentSection) {
-                    NavSection.TAKE_ATTENDANCE -> {
-                        TakeAttendanceScreen(
-                            viewModel = viewModel,
-                            snackbarHostState = snackbarHostState
-                        )
-                    }
-                    NavSection.SEMESTER_STATS -> {
-                        SemesterStatsScreen(viewModel = viewModel)
-                    }
-                    NavSection.ACTIVITY_LOGS -> {
-                        ActivityScreen(viewModel = viewModel)
-                    }
-                    NavSection.STUDENTS -> {
-                        StudentsScreen(viewModel = viewModel)
+                if (isStudentRole) {
+                    // Dedicated Student Portal View (Read-Only)
+                    StudentPortalScreen(viewModel = viewModel)
+                } else {
+                    // Admin Views
+                    when (currentSection) {
+                        NavSection.TAKE_ATTENDANCE -> {
+                            TakeAttendanceScreen(
+                                viewModel = viewModel,
+                                snackbarHostState = snackbarHostState
+                            )
+                        }
+                        NavSection.SEMESTER_STATS -> {
+                            SemesterStatsScreen(viewModel = viewModel)
+                        }
+                        NavSection.ACTIVITY_LOGS -> {
+                            ActivityScreen(viewModel = viewModel)
+                        }
+                        NavSection.STUDENTS -> {
+                            StudentsScreen(viewModel = viewModel)
+                        }
                     }
                 }
             }

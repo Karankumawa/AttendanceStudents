@@ -18,6 +18,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Visibility
@@ -54,7 +55,7 @@ import androidx.compose.ui.unit.sp
 fun LoginScreen(
     onLoginSuccess: (String, String) -> Result<Boolean>
 ) {
-    // Empty fields by default - 100% blank without placeholder or pre-filled values
+    // Empty fields by default - 100% blank without pre-filled values
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -103,12 +104,46 @@ fun LoginScreen(
                 )
 
                 Text(
-                    text = "Admin Access Portal",
+                    text = "Sign in to Admin or Student Portal",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.secondary
                 )
 
-                Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Credentials Info Badge
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
+                    )
+                ) {
+                    /*Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        /*Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = "Info",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )*/
+                        Spacer(modifier = Modifier.width(8.dp))
+                        /*Column {
+                            Text(
+                                text = "Admin: admin@admin.com",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                            )
+                            Text(
+                                text = "Student Portal: student@student.com",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }*/
+                    }*/
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
 
                 // Login Card
                 Card(
@@ -124,7 +159,7 @@ fun LoginScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "Admin Login",
+                            text = "Portal Login",
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                             modifier = Modifier.fillMaxWidth(),
                             textAlign = TextAlign.Start
@@ -132,14 +167,14 @@ fun LoginScreen(
 
                         Spacer(modifier = Modifier.height(18.dp))
 
-                        // Email Field (100% Blank, no placeholder, disabled autofill semantics)
+                        // Email Field
                         OutlinedTextField(
                             value = email,
                             onValueChange = {
                                 email = it
                                 errorMessage = null
                             },
-                            label = { Text("Admin Email") },
+                            label = { Text("Email Address") },
                             leadingIcon = {
                                 Icon(Icons.Default.Email, contentDescription = "Email")
                             },
@@ -156,7 +191,7 @@ fun LoginScreen(
 
                         Spacer(modifier = Modifier.height(14.dp))
 
-                        // Password Field (100% Blank, no placeholder, disabled autofill semantics)
+                        // Password Field
                         OutlinedTextField(
                             value = password,
                             onValueChange = {
@@ -200,7 +235,7 @@ fun LoginScreen(
                         Button(
                             onClick = {
                                 if (email.isBlank() || password.isBlank()) {
-                                    errorMessage = "Please enter Admin Email and Password"
+                                    errorMessage = "Please enter Email and Password"
                                 } else {
                                     val res = onLoginSuccess(email, password)
                                     if (res.isFailure) {
@@ -217,7 +252,7 @@ fun LoginScreen(
                             )
                         ) {
                             Text(
-                                text = "LOGIN TO DASHBOARD",
+                                text = "LOGIN TO PORTAL",
                                 style = MaterialTheme.typography.labelLarge.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 15.sp
@@ -227,10 +262,10 @@ fun LoginScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // Supabase Info Badge
-                Row(
+                /*Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
                     modifier = Modifier
@@ -252,7 +287,7 @@ fun LoginScreen(
                             fontWeight = FontWeight.SemiBold
                         )
                     )
-                }
+                }*/
             }
         }
     }
