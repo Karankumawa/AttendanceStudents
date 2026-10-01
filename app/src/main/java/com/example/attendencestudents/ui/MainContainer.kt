@@ -33,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -71,6 +72,13 @@ fun MainContainer(
     var currentSection by remember { mutableStateOf(NavSection.TAKE_ATTENDANCE) }
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // Show error notification snackbar ONLY if an error occurs
+    LaunchedEffect(syncStatus) {
+        if (syncStatus.contains("Error", ignoreCase = true) || syncStatus.contains("Failed", ignoreCase = true)) {
+            snackbarHostState.showSnackbar("Error Notification: $syncStatus")
+        }
+    }
+
     if (!isLoggedIn) {
         LoginScreen(
             onLoginSuccess = { email, pass ->
@@ -81,87 +89,64 @@ fun MainContainer(
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
-                Column {
-                    TopAppBar(
-                        title = {
-                            Column {
-                                Text(
-                                    text = "Attendance Portal",
-                                    style = MaterialTheme.typography.titleLarge.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 18.sp
-                                    )
-                                )
-                                Text(
-                                    text = "Logged as: ${currentUser?.email ?: "admin@admin.com"}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        },
-                        actions = {
-                            // Supabase Sync Badge
-                            Surface(
-                                shape = RoundedCornerShape(16.dp),
-                                color = Color(0xFF10B981).copy(alpha = 0.15f),
-                                modifier = Modifier.padding(end = 8.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = if (isSyncing) Icons.Default.CloudSync else Icons.Default.CloudDone,
-                                        contentDescription = null,
-                                        tint = Color(0xFF047857),
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = if (isSyncing) "Syncing..." else "Supabase Live",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            color = Color(0xFF047857),
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    )
-                                }
-                            }
-
-                            // Logout Button
-                            IconButton(onClick = { viewModel.logout() }) {
-                                Icon(
-                                    imageVector = Icons.Default.Logout,
-                                    contentDescription = "Logout Admin",
-                                    tint = MaterialTheme.colorScheme.error
-                                )
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                        )
-                    )
-
-                    // Status Bar Banner
-                    Surface(
-                        color = if (syncStatus.contains("Synced") || syncStatus.contains("Live")) Color(0xFFDCFCE7) else Color(0xFFFEF3C7),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                TopAppBar(
+                    title = {
+                        Column {
                             Text(
-                                text = "Status: $syncStatus",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = if (syncStatus.contains("Synced") || syncStatus.contains("Live")) Color(0xFF166534) else Color(0xFF92400E)
+                                text = "Attendance Portal",
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp
                                 )
                             )
+                            Text(
+                                text = "Logged as: ${currentUser?.email ?: "admin@admin.com"}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
-                    }
-                }
+                    },
+                    actions = {
+                        // Supabase Sync Badge
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color(0xFF10B981).copy(alpha = 0.15f),
+                            modifier = Modifier.padding(end = 8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = if (isSyncing) Icons.Default.CloudSync else Icons.Default.CloudDone,
+                                    contentDescription = null,
+                                    tint = Color(0xFF047857),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (isSyncing) "Syncing..." else "Supabase Live",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        color = Color(0xFF047857),
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                )
+                            }
+                        }
+
+                        // Logout Button
+                        IconButton(onClick = { viewModel.logout() }) {
+                            Icon(
+                                imageVector = Icons.Default.Logout,
+                                contentDescription = "Logout Admin",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    )
+                )
             },
             bottomBar = {
                 NavigationBar(

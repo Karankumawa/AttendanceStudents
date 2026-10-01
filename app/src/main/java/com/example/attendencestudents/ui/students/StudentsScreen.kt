@@ -1,9 +1,12 @@
 package com.example.attendencestudents.ui.students
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -41,11 +45,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.attendencestudents.data.model.Student
 import com.example.attendencestudents.ui.AttendanceViewModel
+
+val DEPARTMENTS = listOf("ALL", "CSE", "ECE", "CIVIL", "MECH", "EEE")
 
 @Composable
 fun StudentsScreen(
@@ -53,13 +61,20 @@ fun StudentsScreen(
 ) {
     val students by viewModel.repository.students.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
+    var selectedDepartment by remember { mutableStateOf("ALL") }
     var showAddDialog by remember { mutableStateOf(false) }
 
-    val filteredStudents = students.filter {
-        it.name.contains(searchQuery, ignoreCase = true) ||
-                it.rollNumber.contains(searchQuery, ignoreCase = true) ||
-                "Semester ${it.semester}".contains(searchQuery, ignoreCase = true)
-    }
+    // Filtered & Shuffled/Sorted according to Semester & Branch/Department
+    val filteredStudents = students
+        .filter { student ->
+            val matchesDept = selectedDepartment == "ALL" || student.department.contains(selectedDepartment, ignoreCase = true)
+            val matchesSearch = student.name.contains(searchQuery, ignoreCase = true) ||
+                    student.rollNumber.contains(searchQuery, ignoreCase = true) ||
+                    "Semester ${student.semester}".contains(searchQuery, ignoreCase = true) ||
+                    student.department.contains(searchQuery, ignoreCase = true)
+            matchesDept && matchesSearch
+        }
+        .sortedWith(compareBy({ it.semester }, { it.department }, { it.rollNumber }))
 
     Scaffold(
         floatingActionButton = {
@@ -79,26 +94,61 @@ fun StudentsScreen(
                 .padding(16.dp)
         ) {
             Text(
-                text = "Student Directory",
+                text = "Student Roster & Directory",
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
             )
             Text(
-                text = "Managed roster across Semesters 1 to 8 & synced with Supabase",
+                text = "Classified by Semester & Department (CSE, ECE, CIVIL, MECH, EEE)",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            // Department Filter Chips
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(DEPARTMENTS) { dept ->
+                    val isSelected = selectedDepartment == dept
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(
+                                if (isSelected) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.surfaceVariant
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.LightGray,
+                                shape = RoundedCornerShape(18.dp)
+                            )
+                            .clickable { selectedDepartment = dept }
+                            .padding(horizontal = 14.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = dept,
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                label = { Text("Search by Name, Roll No, or Semester") },
+                label = { Text("Search Name, Roll No, or Class") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             if (filteredStudents.isEmpty()) {
                 Box(
@@ -108,7 +158,7 @@ fun StudentsScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No students found",
+                        text = "No students found in $selectedDepartment",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -141,7 +191,7 @@ fun StudentsScreen(
 fun StudentDirectoryCard(student: Student) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
@@ -176,25 +226,44 @@ fun StudentDirectoryCard(student: Student) {
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                 )
                 Text(
-                    text = "Roll: ${student.rollNumber} | ${student.department}",
+                    text = "Roll: ${student.rollNumber}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.secondaryContainer)
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
-            ) {
-                Text(
-                    text = "Sem ${student.semester}",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                // Branch Badge
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.secondaryContainer)
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = student.department.take(5),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
                     )
-                )
+                }
+
+                // Semester Badge
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "Sem ${student.semester}",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                }
             }
         }
     }
@@ -208,7 +277,7 @@ fun AddStudentDialog(
     var name by remember { mutableStateOf("") }
     var rollNo by remember { mutableStateOf("") }
     var semesterText by remember { mutableStateOf("1") }
-    var dept by remember { mutableStateOf("Computer Science & Engineering") }
+    var selectedBranch by remember { mutableStateOf("CSE") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -220,7 +289,7 @@ fun AddStudentDialog(
             }
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -246,13 +315,34 @@ fun AddStudentDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                OutlinedTextField(
-                    value = dept,
-                    onValueChange = { dept = it },
-                    label = { Text("Department") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                Text(
+                    text = "Select Branch / Department",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                 )
+
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    items(listOf("CSE", "ECE", "CIVIL", "MECH", "EEE")) { branch ->
+                        val isSelected = selectedBranch == branch
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(
+                                    if (isSelected) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.surfaceVariant
+                                )
+                                .clickable { selectedBranch = branch }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = branch,
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isSelected) Color.White else Color.Black
+                                )
+                            )
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
@@ -260,7 +350,7 @@ fun AddStudentDialog(
                 onClick = {
                     if (name.isNotBlank() && rollNo.isNotBlank()) {
                         val sem = semesterText.toIntOrNull()?.coerceIn(1, 8) ?: 1
-                        onConfirm(name.trim(), rollNo.trim(), sem, dept.trim())
+                        onConfirm(name.trim(), rollNo.trim(), sem, selectedBranch)
                     }
                 }
             ) {

@@ -21,18 +21,21 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.RemoveCircleOutline
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -43,6 +46,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,6 +60,17 @@ import com.example.attendencestudents.data.model.AttendanceStatus
 import com.example.attendencestudents.data.model.Student
 import com.example.attendencestudents.ui.AttendanceViewModel
 
+val SUBJECT_OPTIONS = listOf(
+    "CSE - Data Structures & Algorithms",
+    "CSE - Operating Systems & Networks",
+    "ECE - Digital Electronics & Signals",
+    "ECE - Communication Systems",
+    "CIVIL - Structural Analysis & Design",
+    "CIVIL - Environmental Engineering",
+    "MECH - Thermodynamics & Robotics",
+    "EEE - Power Systems & Circuits"
+)
+
 @Composable
 fun TakeAttendanceScreen(
     viewModel: AttendanceViewModel,
@@ -62,9 +79,16 @@ fun TakeAttendanceScreen(
     val selectedSemester by viewModel.selectedSemester.collectAsState()
     val selectedSubject by viewModel.selectedSubject.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
-    val students by viewModel.studentsInSelectedSemester.collectAsState()
+    val rawStudents by viewModel.studentsInSelectedSemester.collectAsState()
     val studentAttendanceMap by viewModel.studentAttendanceMap.collectAsState()
     val submissionMessage by viewModel.submissionMessage.collectAsState()
+
+    var subjectDropdownExpanded by remember { mutableStateOf(false) }
+
+    // Shuffled / Sorted students by Department & Roll Number for easy class identification
+    val students = remember(rawStudents) {
+        rawStudents.sortedWith(compareBy({ it.department }, { it.rollNumber }))
+    }
 
     LaunchedEffect(submissionMessage) {
         submissionMessage?.let {
@@ -134,27 +158,62 @@ fun TakeAttendanceScreen(
             }
         }
 
-        // Subject & Date Inputs
+        // Subject Dropdown & Date Inputs
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                OutlinedTextField(
-                    value = selectedSubject,
-                    onValueChange = { viewModel.setSubject(it) },
-                    label = { Text("Subject / Course") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
-                )
+                // Subject Dropdown
+                Box(modifier = Modifier.weight(1f)) {
+                    OutlinedTextField(
+                        value = selectedSubject,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Subject / Course") },
+                        trailingIcon = {
+                            IconButton(onClick = { subjectDropdownExpanded = true }) {
+                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Subject")
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { subjectDropdownExpanded = true },
+                        singleLine = true
+                    )
 
+                    DropdownMenu(
+                        expanded = subjectDropdownExpanded,
+                        onDismissRequest = { subjectDropdownExpanded = false },
+                        modifier = Modifier.fillMaxWidth(0.7f)
+                    ) {
+                        SUBJECT_OPTIONS.forEach { subj ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = subj,
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontWeight = if (subj == selectedSubject) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    )
+                                },
+                                onClick = {
+                                    viewModel.setSubject(subj)
+                                    subjectDropdownExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                // Date Picker Field
                 OutlinedTextField(
                     value = selectedDate,
                     onValueChange = { viewModel.setDate(it) },
                     label = { Text("Date") },
                     trailingIcon = { Icon(Icons.Default.DateRange, contentDescription = null) },
-                    modifier = Modifier.width(140.dp),
+                    modifier = Modifier.width(135.dp),
                     singleLine = true
                 )
             }
@@ -360,13 +419,33 @@ fun StudentAttendanceRow(
                 Spacer(modifier = Modifier.width(12.dp))
 
                 Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = student.name,
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                            color = Color(0xFF1E293B)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        // Branch Badge
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(MaterialTheme.colorScheme.primaryContainer)
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = student.department.take(5),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            )
+                        }
+                    }
+
                     Text(
-                        text = student.name,
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-                        color = Color(0xFF1E293B)
-                    )
-                    Text(
-                        text = "Roll: ${student.rollNumber} | ${student.department}",
+                        text = "Roll: ${student.rollNumber} | Sem ${student.semester}",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFF64748B)
                     )
