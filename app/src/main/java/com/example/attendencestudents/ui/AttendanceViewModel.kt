@@ -8,12 +8,14 @@ import com.example.attendencestudents.data.model.AttendanceStatus
 import com.example.attendencestudents.data.model.SemesterSummary
 import com.example.attendencestudents.data.model.Student
 import com.example.attendencestudents.data.repository.AttendanceRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -35,10 +37,15 @@ class AttendanceViewModel(
     private val _selectedSubject = MutableStateFlow<String>("Data Structures & Algorithms")
     val selectedSubject: StateFlow<String> = _selectedSubject.asStateFlow()
 
-    private val _selectedDate = MutableStateFlow<String>(
+    private val _liveDate = MutableStateFlow<String>(
         SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
     )
-    val selectedDate: StateFlow<String> = _selectedDate.asStateFlow()
+    val liveDate: StateFlow<String> = _liveDate.asStateFlow()
+
+    private val _liveTime = MutableStateFlow<String>(
+        SimpleDateFormat("hh:mm:ss a", Locale.getDefault()).format(Date())
+    )
+    val liveTime: StateFlow<String> = _liveTime.asStateFlow()
 
     // Student ID -> AttendanceStatus (UNMARKED / NEUTRAL, PRESENT, ABSENT)
     private val _studentAttendanceMap = MutableStateFlow<Map<String, AttendanceStatus>>(emptyMap())
@@ -65,6 +72,20 @@ class AttendanceViewModel(
             repository.syncWithSupabase()
             updateSemesterSummaries()
         }
+
+        // Live clock ticker loop
+        viewModelScope.launch {
+            while (isActive) {
+                updateLiveDateTime()
+                delay(1000L)
+            }
+        }
+    }
+
+    fun updateLiveDateTime() {
+        val now = Date()
+        _liveDate.value = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(now)
+        _liveTime.value = SimpleDateFormat("hh:mm:ss a", Locale.getDefault()).format(now)
     }
 
     fun login(email: String, pass: String): Result<Boolean> {
@@ -99,10 +120,6 @@ class AttendanceViewModel(
 
     fun setSubject(subject: String) {
         _selectedSubject.value = subject
-    }
-
-    fun setDate(date: String) {
-        _selectedDate.value = date
     }
 
     fun setStudentStatus(studentId: String, status: AttendanceStatus) {
@@ -146,15 +163,17 @@ class AttendanceViewModel(
     }
 
     fun submitAttendance() {
+        updateLiveDateTime()
         val sem = _selectedSemester.value
         val subj = _selectedSubject.value
-        val date = _selectedDate.value
+        val date = _liveDate.value
+        val time = _liveTime.value
         val map = _studentAttendanceMap.value
 
         viewModelScope.launch {
-            val res = repository.submitAttendance(sem, subj, date, map)
+            val res = repository.submitAttendance(sem, subj, date, time, map)
             if (res.isSuccess) {
-                _submissionMessage.value = "Attendance for Semester $sem ($subj) submitted! Unmarked students set to Absent."
+                _submissionMessage.value = "Attendance for Semester $sem ($subj) submitted on $date at $time!"
                 repository.syncWithSupabase()
                 updateSemesterSummaries()
                 resetAttendanceForCurrentSemester()

@@ -26,7 +26,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -78,7 +78,8 @@ fun TakeAttendanceScreen(
 ) {
     val selectedSemester by viewModel.selectedSemester.collectAsState()
     val selectedSubject by viewModel.selectedSubject.collectAsState()
-    val selectedDate by viewModel.selectedDate.collectAsState()
+    val liveDate by viewModel.liveDate.collectAsState()
+    val liveTime by viewModel.liveTime.collectAsState()
     val rawStudents by viewModel.studentsInSelectedSemester.collectAsState()
     val studentAttendanceMap by viewModel.studentAttendanceMap.collectAsState()
     val submissionMessage by viewModel.submissionMessage.collectAsState()
@@ -158,64 +159,115 @@ fun TakeAttendanceScreen(
             }
         }
 
-        // Subject Dropdown & Date Inputs
+        // Subject Dropdown & Live Date & Time Display
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(
+            // Live Date & Time Badge Card
+            Card(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                )
             ) {
-                // Subject Dropdown
-                Box(modifier = Modifier.weight(1f)) {
-                    OutlinedTextField(
-                        value = selectedSubject,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Subject / Course") },
-                        trailingIcon = {
-                            IconButton(onClick = { subjectDropdownExpanded = true }) {
-                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Subject")
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { subjectDropdownExpanded = true },
-                        singleLine = true
-                    )
-
-                    DropdownMenu(
-                        expanded = subjectDropdownExpanded,
-                        onDismissRequest = { subjectDropdownExpanded = false },
-                        modifier = Modifier.fillMaxWidth(0.7f)
-                    ) {
-                        SUBJECT_OPTIONS.forEach { subj ->
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = subj,
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontWeight = if (subj == selectedSubject) FontWeight.Bold else FontWeight.Normal
-                                        )
-                                    )
-                                },
-                                onClick = {
-                                    viewModel.setSubject(subj)
-                                    subjectDropdownExpanded = false
-                                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF10B981))
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "LIVE",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = Color(0xFF047857),
+                                fontWeight = FontWeight.Bold
                             )
-                        }
+                        )
+                    }
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.DateRange,
+                            contentDescription = "Date",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = liveDate,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = "Time",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = liveTime,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        )
                     }
                 }
+            }
 
-                // Date Picker Field
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Subject Dropdown
+            Box(modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(
-                    value = selectedDate,
-                    onValueChange = { viewModel.setDate(it) },
-                    label = { Text("Date") },
-                    trailingIcon = { Icon(Icons.Default.DateRange, contentDescription = null) },
-                    modifier = Modifier.width(135.dp),
+                    value = selectedSubject,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Subject / Course") },
+                    trailingIcon = {
+                        IconButton(onClick = { subjectDropdownExpanded = true }) {
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Subject")
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { subjectDropdownExpanded = true },
                     singleLine = true
                 )
+
+                DropdownMenu(
+                    expanded = subjectDropdownExpanded,
+                    onDismissRequest = { subjectDropdownExpanded = false },
+                    modifier = Modifier.fillMaxWidth(0.85f)
+                ) {
+                    SUBJECT_OPTIONS.forEach { subj ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = subj,
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontWeight = if (subj == selectedSubject) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                )
+                            },
+                            onClick = {
+                                viewModel.setSubject(subj)
+                                subjectDropdownExpanded = false
+                            }
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -288,7 +340,7 @@ fun TakeAttendanceScreen(
                 Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "Initial state is Neutral. Unmarked students will be set to Absent on submission.",
+                    text = "Live timestamp will automatically register with every submission.",
                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 )
             }
@@ -335,24 +387,22 @@ fun TakeAttendanceScreen(
             color = MaterialTheme.colorScheme.surface,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Box(modifier = Modifier.padding(16.dp)) {
+            Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
                 Button(
                     onClick = { viewModel.submitAttendance() },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp),
+                        .height(48.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
-                    Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "SUBMIT ATTENDANCE TO SUPABASE",
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp
+                            fontSize = 14.sp
                         )
                     )
                 }

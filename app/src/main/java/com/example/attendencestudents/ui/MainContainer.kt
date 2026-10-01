@@ -43,6 +43,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.attendencestudents.data.auth.UserRole
@@ -54,8 +56,8 @@ import com.example.attendencestudents.ui.studentportal.StudentPortalScreen
 import com.example.attendencestudents.ui.students.StudentsScreen
 
 enum class NavSection(val title: String, val icon: ImageVector) {
-    TAKE_ATTENDANCE("Take Attendance", Icons.Default.CheckCircle),
-    SEMESTER_STATS("All Semesters", Icons.Default.Assessment),
+    TAKE_ATTENDANCE("Attendance", Icons.Default.CheckCircle),
+    SEMESTER_STATS("Semesters", Icons.Default.Assessment),
     ACTIVITY_LOGS("Activity", Icons.Default.History),
     STUDENTS("Students", Icons.Default.People)
 }
@@ -162,23 +164,30 @@ fun MainContainer(
                             NavigationBarItem(
                                 selected = selected,
                                 onClick = { currentSection = section },
+                                alwaysShowLabel = true,
                                 icon = {
                                     Icon(
                                         imageVector = section.icon,
-                                        contentDescription = section.title
+                                        contentDescription = section.title,
+                                        modifier = Modifier.size(24.dp)
                                     )
                                 },
                                 label = {
                                     Text(
                                         text = section.title,
                                         style = MaterialTheme.typography.labelMedium.copy(
-                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
-                                        )
+                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                                            fontSize = 12.sp
+                                        ),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        textAlign = TextAlign.Center
                                     )
                                 },
                                 colors = NavigationBarItemDefaults.colors(
                                     selectedIconColor = MaterialTheme.colorScheme.primary,
-                                    selectedTextColor = MaterialTheme.colorScheme.primary
+                                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                                    indicatorColor = MaterialTheme.colorScheme.primaryContainer
                                 )
                             )
                         }

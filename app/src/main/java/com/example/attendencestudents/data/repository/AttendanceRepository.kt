@@ -79,6 +79,7 @@ class AttendanceRepository(
         semester: Int,
         subject: String,
         date: String,
+        time: String = "",
         studentStatusMap: Map<String, AttendanceStatus>
     ): Result<Boolean> {
         _isSyncing.value = true
@@ -89,6 +90,7 @@ class AttendanceRepository(
         var absentCount = 0
 
         val semesterStudents = _students.value.filter { it.semester == semester }
+        val nowTimestamp = System.currentTimeMillis()
 
         semesterStudents.forEach { student ->
             val status = studentStatusMap[student.id] ?: AttendanceStatus.UNMARKED
@@ -108,24 +110,25 @@ class AttendanceRepository(
                 subject = subject,
                 date = date,
                 status = finalStatusString,
-                timestamp = System.currentTimeMillis()
+                timestamp = nowTimestamp
             )
             newRecords.add(record)
         }
 
         _attendanceRecords.value = _attendanceRecords.value + newRecords
 
+        val timeStr = if (time.isNotBlank()) " at $time" else ""
         val activity = ActivityLog(
             id = UUID.randomUUID().toString(),
             title = "Semester $semester Attendance Recorded",
-            description = "$subject ($date): $presentCount Present, $absentCount Absent",
+            description = "$subject ($date$timeStr): $presentCount Present, $absentCount Absent",
             date = date,
             semester = semester,
             subject = subject,
             presentCount = presentCount,
             absentCount = absentCount,
             totalCount = semesterStudents.size,
-            timestamp = System.currentTimeMillis()
+            timestamp = nowTimestamp
         )
         _activityLogs.value = listOf(activity) + _activityLogs.value
 
