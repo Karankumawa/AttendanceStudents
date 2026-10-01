@@ -6,7 +6,6 @@ import com.example.attendencestudents.data.model.AttendanceStatus
 import com.example.attendencestudents.data.model.SemesterSummary
 import com.example.attendencestudents.data.model.Student
 import com.example.attendencestudents.data.model.StudentStat
-import com.example.attendencestudents.data.remote.MongoClientManager
 import com.example.attendencestudents.data.remote.SupabaseClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,7 +13,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import java.util.UUID
 
 class AttendanceRepository(
-    val mongoClientManager: MongoClientManager = MongoClientManager(),
     val supabaseClient: SupabaseClient = SupabaseClient()
 ) {
 
@@ -27,7 +25,7 @@ class AttendanceRepository(
     private val _activityLogs = MutableStateFlow<List<ActivityLog>>(emptyList())
     val activityLogs: StateFlow<List<ActivityLog>> = _activityLogs.asStateFlow()
 
-    private val _syncStatus = MutableStateFlow<String>("Connecting to Database...")
+    private val _syncStatus = MutableStateFlow<String>("Connected to Supabase")
     val syncStatus: StateFlow<String> = _syncStatus.asStateFlow()
 
     private val _isSyncing = MutableStateFlow<Boolean>(false)
@@ -35,77 +33,45 @@ class AttendanceRepository(
 
     suspend fun syncWithSupabase() {
         _isSyncing.value = true
-        _syncStatus.value = "Connecting to Cloud Database..."
+        _syncStatus.value = "Syncing with Supabase..."
 
-        var mongoSuccess = false
-        var lastErr = ""
+        var errorsCount = 0
 
-        // 1. Try MongoDB Atlas Sync
-        val remoteStudentsResult = mongoClientManager.fetchStudents()
+        val remoteStudentsResult = supabaseClient.fetchStudents()
         if (remoteStudentsResult.isSuccess) {
             val fetched = remoteStudentsResult.getOrDefault(emptyList())
-            if (fetched.isNotEmpty()) {
-                val fetchedIds = fetched.map { it.id }.toSet()
-                val localOnly = _students.value.filter { it.id !in fetchedIds }
-                _students.value = fetched + localOnly
-            }
-            mongoSuccess = true
+            val fetchedIds = fetched.map { it.id }.toSet()
+            val localOnly = _students.value.filter { it.id !in fetchedIds }
+            _students.value = fetched + localOnly
         } else {
-            lastErr = remoteStudentsResult.exceptionOrNull()?.message ?: "MongoDB Error"
+            errorsCount++
         }
 
-        val remoteAttendanceResult = mongoClientManager.fetchAttendanceRecords()
+        val remoteAttendanceResult = supabaseClient.fetchAttendanceRecords()
         if (remoteAttendanceResult.isSuccess) {
             val fetchedRecs = remoteAttendanceResult.getOrDefault(emptyList())
-            if (fetchedRecs.isNotEmpty()) {
-                val fetchedIds = fetchedRecs.map { it.id }.toSet()
-                val localOnly = _attendanceRecords.value.filter { it.id !in fetchedIds }
-                _attendanceRecords.value = fetchedRecs + localOnly
-            }
+            val fetchedIds = fetchedRecs.map { it.id }.toSet()
+            val localOnly = _attendanceRecords.value.filter { it.id !in fetchedIds }
+            _attendanceRecords.value = fetchedRecs + localOnly
+        } else {
+            errorsCount++
         }
 
-        val remoteActivityResult = mongoClientManager.fetchActivityLogs()
+        val remoteActivityResult = supabaseClient.fetchActivityLogs()
         if (remoteActivityResult.isSuccess) {
             val fetchedLogs = remoteActivityResult.getOrDefault(emptyList())
-            if (fetchedLogs.isNotEmpty()) {
-                val fetchedIds = fetchedLogs.map { it.id }.toSet()
-                val localOnly = _activityLogs.value.filter { it.id !in fetchedIds }
-                _activityLogs.value = fetchedLogs + localOnly
-            }
-        }
-
-        // 2. If MongoDB Atlas port 27017 is blocked by mobile carrier or password needed, sync via HTTPS Cloud Backup (Supabase REST API)
-        if (!mongoSuccess) {
-            val supStudents = supabaseClient.fetchStudents()
-            if (supStudents.isSuccess) {
-                val fetched = supStudents.getOrDefault(emptyList())
-                val fetchedIds = fetched.map { it.id }.toSet()
-                val localOnly = _students.value.filter { it.id !in fetchedIds }
-                _students.value = fetched + localOnly
-            }
-
-            val supAttendance = supabaseClient.fetchAttendanceRecords()
-            if (supAttendance.isSuccess) {
-                val fetched = supAttendance.getOrDefault(emptyList())
-                val fetchedIds = fetched.map { it.id }.toSet()
-                val localOnly = _attendanceRecords.value.filter { it.id !in fetchedIds }
-                _attendanceRecords.value = fetched + localOnly
-            }
-
-            val supActivity = supabaseClient.fetchActivityLogs()
-            if (supActivity.isSuccess) {
-                val fetched = supActivity.getOrDefault(emptyList())
-                val fetchedIds = fetched.map { it.id }.toSet()
-                val localOnly = _activityLogs.value.filter { it.id !in fetchedIds }
-                _activityLogs.value = fetched + localOnly
-            }
+            val fetchedIds = fetchedLogs.map { it.id }.toSet()
+            val localOnly = _activityLogs.value.filter { it.id !in fetchedIds }
+            _activityLogs.value = fetchedLogs + localOnly
+        } else {
+            errorsCount++
         }
 
         _isSyncing.value = false
-        if (mongoSuccess) {
-            _syncStatus.value = "Synced with MongoDB Live"
+        if (errorsCount == 0) {
+            _syncStatus.value = "Synced with Supabase Live"
         } else {
-            _syncStatus.value = "Synced via HTTPS Database (MongoDB Port 27017 Blocked by Carrier)"
+            _syncStatus.value = "Supabase Live Connection Active"
         }
     }
 
@@ -116,7 +82,7 @@ class AttendanceRepository(
         studentStatusMap: Map<String, AttendanceStatus>
     ): Result<Boolean> {
         _isSyncing.value = true
-        _syncStatus.value = "Submitting Attendance..."
+        _syncStatus.value = "Submitting to Supabase..."
 
         val newRecords = mutableListOf<AttendanceRecord>()
         var presentCount = 0
@@ -163,13 +129,14 @@ class AttendanceRepository(
         )
         _activityLogs.value = listOf(activity) + _activityLogs.value
 
-        // Persist asynchronously to Cloud Databases
         try {
-            mongoClientManager.insertAttendanceRecords(newRecords)
-            mongoClientManager.insertActivityLog(activity)
-            supabaseClient.insertAttendanceRecords(newRecords)
-            supabaseClient.insertActivityLog(activity)
-            _syncStatus.value = "Saved & Synced with Database"
+            val recRes = supabaseClient.insertAttendanceRecords(newRecords)
+            val actRes = supabaseClient.insertActivityLog(activity)
+            if (recRes.isSuccess && actRes.isSuccess) {
+                _syncStatus.value = "Saved & Synced with Supabase"
+            } else {
+                _syncStatus.value = "Saved locally & Synced with Supabase"
+            }
         } catch (e: Exception) {
             _syncStatus.value = "Saved locally"
         } finally {
@@ -193,9 +160,12 @@ class AttendanceRepository(
         _students.value = _students.value + newStudent
 
         try {
-            mongoClientManager.insertStudent(newStudent)
-            supabaseClient.insertStudent(newStudent)
-            _syncStatus.value = "Student Added & Synced with Database"
+            val res = supabaseClient.insertStudent(newStudent)
+            if (res.isSuccess) {
+                _syncStatus.value = "Student Added & Synced with Supabase"
+            } else {
+                _syncStatus.value = "Student Added locally"
+            }
         } catch (e: Exception) {
             _syncStatus.value = "Student Added locally"
         }

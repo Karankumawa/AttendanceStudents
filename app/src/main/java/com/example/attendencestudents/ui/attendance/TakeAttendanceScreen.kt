@@ -244,7 +244,7 @@ fun TakeAttendanceScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "No students found in Semester $selectedSemester in MongoDB",
+                    text = "No students found in Semester $selectedSemester in Supabase",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -290,7 +290,7 @@ fun TakeAttendanceScreen(
                     Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "SUBMIT ATTENDANCE TO MONGODB",
+                        text = "SUBMIT ATTENDANCE TO SUPABASE",
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp

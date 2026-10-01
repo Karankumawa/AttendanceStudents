@@ -22,9 +22,8 @@ object AuthManager {
         val trimmedEmail = emailInput.trim().lowercase()
         val trimmedPassword = passwordInput.trim()
 
-        // Requirements specify admin@amin.com / admin@amin.com
-        val isValidAdmin = (trimmedEmail == "admin@amin.com" && trimmedPassword == "admin@amin.com") ||
-                (trimmedEmail == "admin@admin.com" && trimmedPassword == "admin@admin.com")
+        val isValidAdmin = (trimmedEmail == "admin@admin.com" && trimmedPassword == "admin@admin.com") ||
+                (trimmedEmail == "admin@amin.com" && trimmedPassword == "admin@amin.com")
 
         return if (isValidAdmin) {
             val user = AdminUser(email = trimmedEmail)
@@ -32,7 +31,7 @@ object AuthManager {
             _isLoggedIn.value = true
             Result.success(user)
         } else {
-            Result.failure(Exception("Invalid credentials. Please use admin@amin.com and admin@amin.com"))
+            Result.failure(Exception("Invalid credentials. Please enter valid Admin Email and Password."))
         }
     }
 

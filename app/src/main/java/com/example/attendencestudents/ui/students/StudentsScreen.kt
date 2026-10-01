@@ -83,7 +83,7 @@ fun StudentsScreen(
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
             )
             Text(
-                text = "Managed roster across Semesters 1 to 8 & synced with MongoDB",
+                text = "Managed roster across Semesters 1 to 8 & synced with Supabase",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

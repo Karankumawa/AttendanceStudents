@@ -54,8 +54,9 @@ import androidx.compose.ui.unit.sp
 fun LoginScreen(
     onLoginSuccess: (String, String) -> Result<Boolean>
 ) {
-    var email by remember { mutableStateOf("admin@amin.com") }
-    var password by remember { mutableStateOf("admin@amin.com") }
+    // Empty fields by default - no hardcoded credentials shown on screen
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -74,7 +75,7 @@ fun LoginScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                // Header Icon
+                // Header Logo Circle
                 Box(
                     modifier = Modifier
                         .size(80.dp)
@@ -93,7 +94,7 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "Student Attendance Admin",
+                    text = "Student Attendance Portal",
                     style = MaterialTheme.typography.headlineMedium.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp
@@ -102,34 +103,34 @@ fun LoginScreen(
                 )
 
                 Text(
-                    text = "MongoDB Atlas Connected",
+                    text = "Admin Access Portal",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.secondary
                 )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(28.dp))
 
                 // Login Card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                     ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(
-                        modifier = Modifier.padding(20.dp),
+                        modifier = Modifier.padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
                             text = "Admin Login",
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                             modifier = Modifier.fillMaxWidth(),
                             textAlign = TextAlign.Start
                         )
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(18.dp))
 
                         // Email Field
                         OutlinedTextField(
@@ -139,6 +140,7 @@ fun LoginScreen(
                                 errorMessage = null
                             },
                             label = { Text("Admin Email") },
+                            placeholder = { Text("admin@admin.com") },
                             leadingIcon = {
                                 Icon(Icons.Default.Email, contentDescription = "Email")
                             },
@@ -150,7 +152,7 @@ fun LoginScreen(
                             )
                         )
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
 
                         // Password Field
                         OutlinedTextField(
@@ -160,6 +162,7 @@ fun LoginScreen(
                                 errorMessage = null
                             },
                             label = { Text("Password") },
+                            placeholder = { Text("••••••••") },
                             leadingIcon = {
                                 Icon(Icons.Default.Lock, contentDescription = "Password")
                             },
@@ -177,41 +180,28 @@ fun LoginScreen(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
                         )
 
-                        // Default Credentials Info Box
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))
-                                .padding(10.dp)
-                        ) {
-                            Text(
-                                text = "Default Admin Login:\nEmail: admin@amin.com\nPassword: admin@amin.com",
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            )
-                        }
-
                         if (errorMessage != null) {
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
                                 text = errorMessage!!,
                                 color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
 
                         // Submit Button
                         Button(
                             onClick = {
-                                val res = onLoginSuccess(email, password)
-                                if (res.isFailure) {
-                                    errorMessage = res.exceptionOrNull()?.message ?: "Login failed"
+                                if (email.isBlank() || password.isBlank()) {
+                                    errorMessage = "Please enter Admin Email and Password"
+                                } else {
+                                    val res = onLoginSuccess(email, password)
+                                    if (res.isFailure) {
+                                        errorMessage = res.exceptionOrNull()?.message ?: "Login failed"
+                                    }
                                 }
                             },
                             modifier = Modifier
@@ -233,28 +223,28 @@ fun LoginScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(28.dp))
 
-                // MongoDB Info Badge
+                // Supabase Info Badge
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
-                        .background(Color(0xFF00ED64).copy(alpha = 0.15f))
+                        .background(Color(0xFF3ECF8E).copy(alpha = 0.15f))
                         .padding(horizontal = 14.dp, vertical = 6.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.CloudDone,
-                        contentDescription = "MongoDB",
-                        tint = Color(0xFF00684A),
+                        contentDescription = "Supabase",
+                        tint = Color(0xFF10B981),
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "MongoDB Atlas: studentdata.sfaysfb.mongodb.net",
+                        text = "Supabase Database Live",
                         style = MaterialTheme.typography.bodySmall.copy(
-                            color = Color(0xFF00684A),
+                            color = Color(0xFF065F46),
                             fontWeight = FontWeight.SemiBold
                         )
                     )

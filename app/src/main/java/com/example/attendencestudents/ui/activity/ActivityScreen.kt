@@ -78,7 +78,7 @@ fun ActivityScreen(
                     style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
                 )
                 Text(
-                    text = "Real-time activity logs recorded & synced with MongoDB Atlas",
+                    text = "Real-time activity logs recorded & synced with Supabase",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
