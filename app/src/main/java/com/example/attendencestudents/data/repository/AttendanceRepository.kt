@@ -25,7 +25,7 @@ class AttendanceRepository(
     private val _activityLogs = MutableStateFlow<List<ActivityLog>>(emptyList())
     val activityLogs: StateFlow<List<ActivityLog>> = _activityLogs.asStateFlow()
 
-    private val _syncStatus = MutableStateFlow<String>("Connected to MongoDB Atlas")
+    private val _syncStatus = MutableStateFlow<String>("Connecting to MongoDB...")
     val syncStatus: StateFlow<String> = _syncStatus.asStateFlow()
 
     private val _isSyncing = MutableStateFlow<Boolean>(false)
@@ -33,27 +33,42 @@ class AttendanceRepository(
 
     suspend fun syncWithSupabase() {
         _isSyncing.value = true
-        _syncStatus.value = "Fetching from MongoDB Atlas..."
+        _syncStatus.value = "Connecting to MongoDB Atlas..."
 
         var lastErr = ""
 
         val remoteStudentsResult = mongoClientManager.fetchStudents()
         if (remoteStudentsResult.isSuccess) {
-            _students.value = remoteStudentsResult.getOrDefault(emptyList())
+            val fetched = remoteStudentsResult.getOrDefault(emptyList())
+            if (fetched.isNotEmpty()) {
+                val fetchedIds = fetched.map { it.id }.toSet()
+                val localOnly = _students.value.filter { it.id !in fetchedIds }
+                _students.value = fetched + localOnly
+            }
         } else {
             lastErr = remoteStudentsResult.exceptionOrNull()?.message ?: "Error fetching students"
         }
 
         val remoteAttendanceResult = mongoClientManager.fetchAttendanceRecords()
         if (remoteAttendanceResult.isSuccess) {
-            _attendanceRecords.value = remoteAttendanceResult.getOrDefault(emptyList())
+            val fetchedRecs = remoteAttendanceResult.getOrDefault(emptyList())
+            if (fetchedRecs.isNotEmpty()) {
+                val fetchedIds = fetchedRecs.map { it.id }.toSet()
+                val localOnly = _attendanceRecords.value.filter { it.id !in fetchedIds }
+                _attendanceRecords.value = fetchedRecs + localOnly
+            }
         } else if (lastErr.isEmpty()) {
             lastErr = remoteAttendanceResult.exceptionOrNull()?.message ?: "Error fetching attendance"
         }
 
         val remoteActivityResult = mongoClientManager.fetchActivityLogs()
         if (remoteActivityResult.isSuccess) {
-            _activityLogs.value = remoteActivityResult.getOrDefault(emptyList())
+            val fetchedLogs = remoteActivityResult.getOrDefault(emptyList())
+            if (fetchedLogs.isNotEmpty()) {
+                val fetchedIds = fetchedLogs.map { it.id }.toSet()
+                val localOnly = _activityLogs.value.filter { it.id !in fetchedIds }
+                _activityLogs.value = fetchedLogs + localOnly
+            }
         } else if (lastErr.isEmpty()) {
             lastErr = remoteActivityResult.exceptionOrNull()?.message ?: "Error fetching activity"
         }
@@ -62,7 +77,7 @@ class AttendanceRepository(
         if (lastErr.isEmpty()) {
             _syncStatus.value = "Synced with MongoDB Live"
         } else {
-            _syncStatus.value = "MongoDB Error: $lastErr"
+            _syncStatus.value = lastErr
         }
     }
 
@@ -147,6 +162,7 @@ class AttendanceRepository(
             email = "${name.lowercase().replace(" ", ".")}@college.edu"
         )
 
+        // Save locally first so user sees the added student immediately in UI
         _students.value = _students.value + newStudent
 
         try {
@@ -154,10 +170,10 @@ class AttendanceRepository(
             if (res.isSuccess) {
                 _syncStatus.value = "Student Added & Synced with MongoDB"
             } else {
-                _syncStatus.value = "Error: ${res.exceptionOrNull()?.message}"
+                _syncStatus.value = "Student Added locally (${res.exceptionOrNull()?.message})"
             }
         } catch (e: Exception) {
-            _syncStatus.value = "Error adding student: ${e.message}"
+            _syncStatus.value = "Student Added locally (${e.message})"
         }
 
         return Result.success(newStudent)

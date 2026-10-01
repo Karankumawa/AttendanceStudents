@@ -48,8 +48,11 @@ class MongoClientManager {
                 val settings = MongoClientSettings.builder()
                     .applyConnectionString(connectionString)
                     .applyToSocketSettings { builder ->
-                        builder.connectTimeout(12, TimeUnit.SECONDS)
-                        builder.readTimeout(12, TimeUnit.SECONDS)
+                        builder.connectTimeout(5, TimeUnit.SECONDS)
+                        builder.readTimeout(5, TimeUnit.SECONDS)
+                    }
+                    .applyToClusterSettings { builder ->
+                        builder.serverSelectionTimeout(5, TimeUnit.SECONDS)
                     }
                     .build()
                 mongoClient = MongoClients.create(settings)
@@ -58,8 +61,18 @@ class MongoClientManager {
             mongoClient?.getDatabase(MongoConfig.DATABASE_NAME)
         } catch (t: Throwable) {
             t.printStackTrace()
-            lastConnectionError = t.message ?: t.toString()
+            lastConnectionError = cleanErrorMessage(t.message ?: t.toString())
             null
+        }
+    }
+
+    private fun cleanErrorMessage(rawMsg: String): String {
+        return when {
+            rawMsg.contains("ReadPreferenceServerSelector") || rawMsg.contains("UnknownHostException") ->
+                "MongoDB Atlas Connection Timeout. Allow IP 0.0.0.0/0 in Atlas Network Access."
+            rawMsg.contains("AuthenticationFailed") || rawMsg.contains("Authentication failed") ->
+                "MongoDB Auth Failed. Tap 'MongoDB' button at top to enter correct password."
+            else -> rawMsg.take(120)
         }
     }
 
@@ -90,7 +103,7 @@ class MongoClientManager {
             }
             Result.success(list)
         } catch (t: Throwable) {
-            Result.failure(Exception(t.message ?: t.toString()))
+            Result.failure(Exception(cleanErrorMessage(t.message ?: t.toString())))
         }
     }
 
@@ -104,7 +117,7 @@ class MongoClientManager {
             collection.replaceOne(query, doc, ReplaceOptions().upsert(true))
             Result.success(student)
         } catch (t: Throwable) {
-            Result.failure(Exception(t.message ?: t.toString()))
+            Result.failure(Exception(cleanErrorMessage(t.message ?: t.toString())))
         }
     }
 
@@ -139,7 +152,7 @@ class MongoClientManager {
             }
             Result.success(list)
         } catch (t: Throwable) {
-            Result.failure(Exception(t.message ?: t.toString()))
+            Result.failure(Exception(cleanErrorMessage(t.message ?: t.toString())))
         }
     }
 
@@ -155,7 +168,7 @@ class MongoClientManager {
             }
             Result.success(true)
         } catch (t: Throwable) {
-            Result.failure(Exception(t.message ?: t.toString()))
+            Result.failure(Exception(cleanErrorMessage(t.message ?: t.toString())))
         }
     }
 
@@ -194,7 +207,7 @@ class MongoClientManager {
             }
             Result.success(list)
         } catch (t: Throwable) {
-            Result.failure(Exception(t.message ?: t.toString()))
+            Result.failure(Exception(cleanErrorMessage(t.message ?: t.toString())))
         }
     }
 
@@ -208,7 +221,7 @@ class MongoClientManager {
             collection.replaceOne(query, doc, ReplaceOptions().upsert(true))
             Result.success(log)
         } catch (t: Throwable) {
-            Result.failure(Exception(t.message ?: t.toString()))
+            Result.failure(Exception(cleanErrorMessage(t.message ?: t.toString())))
         }
     }
 
