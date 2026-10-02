@@ -37,11 +37,32 @@ object AuthManager {
         val trimmedEmail = emailInput.trim().lowercase()
         val trimmedPassword = passwordInput.trim()
 
-        // 1. Admin Login Check
-        val isAdmin = (trimmedEmail == "admin@admin.com" && trimmedPassword == "admin@admin.com") ||
+        // 1. Query Supabase admin_users Table for Admin Login
+        val adminUsersResult = supabaseClient.fetchAdminUsers()
+        if (adminUsersResult.isSuccess) {
+            val adminUsers = adminUsersResult.getOrDefault(emptyList())
+            val matchedAdmin = adminUsers.firstOrNull {
+                it.email.trim().equals(trimmedEmail, ignoreCase = true) &&
+                        it.password.trim() == trimmedPassword
+            }
+
+            if (matchedAdmin != null) {
+                val adminUser = User(
+                    email = matchedAdmin.email.ifBlank { trimmedEmail },
+                    name = matchedAdmin.name ?: "Admin Instructor",
+                    role = UserRole.ADMIN
+                )
+                _currentUser.value = adminUser
+                _isLoggedIn.value = true
+                return Result.success(adminUser)
+            }
+        }
+
+        // Fallback Admin Check (for initial admin setup)
+        val isDefaultAdmin = (trimmedEmail == "admin@admin.com" && trimmedPassword == "admin@admin.com") ||
                 (trimmedEmail == "admin@amin.com" && trimmedPassword == "admin@amin.com")
 
-        if (isAdmin) {
+        if (isDefaultAdmin) {
             val adminUser = User(
                 email = if (trimmedEmail.isNotBlank()) trimmedEmail else "admin@admin.com",
                 name = "Admin Instructor",
@@ -115,8 +136,8 @@ object AuthManager {
             return Result.success(studentUser)
         }
 
-        // 4. Invalid Student Credentials Error
-        return Result.failure(Exception("Invalid student, please contact admin."))
+        // 4. Invalid Credentials Error
+        return Result.failure(Exception("Invalid credentials. Please contact admin."))
     }
 
     fun logout() {

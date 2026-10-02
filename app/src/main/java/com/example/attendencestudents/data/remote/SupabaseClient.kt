@@ -1,6 +1,7 @@
 package com.example.attendencestudents.data.remote
 
 import com.example.attendencestudents.data.model.ActivityLog
+import com.example.attendencestudents.data.model.AdminUserRecord
 import com.example.attendencestudents.data.model.AttendanceRecord
 import com.example.attendencestudents.data.model.LoginUser
 import com.example.attendencestudents.data.model.Student
@@ -68,6 +69,24 @@ class SupabaseClient {
                 if (response.isSuccessful) {
                     val type = object : TypeToken<List<Student>>() {}.type
                     val list: List<Student> = gson.fromJson(bodyString, type) ?: emptyList()
+                    Result.success(list)
+                } else {
+                    Result.failure(Exception("HTTP ${response.code}: $bodyString"))
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun fetchAdminUsers(): Result<List<AdminUserRecord>> = withContext(Dispatchers.IO) {
+        try {
+            val request = buildRequest("admin_users?select=*")
+            okHttpClient.newCall(request).execute().use { response ->
+                val bodyString = response.body?.string() ?: ""
+                if (response.isSuccessful) {
+                    val type = object : TypeToken<List<AdminUserRecord>>() {}.type
+                    val list: List<AdminUserRecord> = gson.fromJson(bodyString, type) ?: emptyList()
                     Result.success(list)
                 } else {
                     Result.failure(Exception("HTTP ${response.code}: $bodyString"))

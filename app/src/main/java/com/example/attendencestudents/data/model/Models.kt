@@ -27,6 +27,13 @@ data class LoginUser(
     @SerializedName("semester") val semester: Int? = null
 )
 
+data class AdminUserRecord(
+    @SerializedName("id") val id: String? = null,
+    @SerializedName("email") val email: String = "",
+    @SerializedName("password") val password: String = "",
+    @SerializedName("name") val name: String? = "Admin Instructor"
+)
+
 data class AttendanceRecord(
     @SerializedName("id") val id: String,
     @SerializedName("student_id") val studentId: String,
