@@ -58,7 +58,7 @@ object AuthManager {
             }
         }
 
-        // Fallback Admin Check (for initial admin setup)
+        // Fallback Admin Check (for default/initial admin setup)
         val isDefaultAdmin = (trimmedEmail == "admin@admin.com" && trimmedPassword == "admin@admin.com") ||
                 (trimmedEmail == "admin@amin.com" && trimmedPassword == "admin@amin.com")
 
@@ -73,15 +73,16 @@ object AuthManager {
             return Result.success(adminUser)
         }
 
-        // Fetch fresh students from Supabase if list is currently empty
-        val studentsList = if (registeredStudents.isEmpty()) {
-            val fetchRes = supabaseClient.fetchStudents()
-            fetchRes.getOrDefault(emptyList())
+        // Always fetch fresh live students list from Supabase REST API on login
+        val freshStudentsResult = supabaseClient.fetchStudents()
+        val studentsList = if (freshStudentsResult.isSuccess) {
+            val fetched = freshStudentsResult.getOrDefault(emptyList())
+            if (fetched.isNotEmpty()) fetched else registeredStudents
         } else {
             registeredStudents
         }
 
-        // 2. Query Supabase loginuser Table (if present)
+        // 2. Query Supabase loginuser Table (if present in Supabase)
         val loginUsersResult = supabaseClient.fetchLoginUsers()
         if (loginUsersResult.isSuccess) {
             val loginUsers = loginUsersResult.getOrDefault(emptyList())
@@ -109,14 +110,18 @@ object AuthManager {
             }
         }
 
-        // 3. Fallback Check: Authenticate directly against Supabase Students Table
+        // 3. Direct Authentication against Supabase Students Table
         val matchedStudent = studentsList.firstOrNull { student ->
-            val emailMatch = student.email.trim().equals(trimmedEmail, ignoreCase = true)
-            val rollMatch = student.rollNumber.trim().equals(trimmedEmail, ignoreCase = true) ||
-                    student.rollNumber.trim().equals(trimmedPassword, ignoreCase = true)
-            val nameMatch = student.name.lowercase().replace(" ", "").contains(trimmedEmail.substringBefore("@"))
+            val cleanEmailInput = trimmedEmail.lowercase()
+            val cleanStudentEmail = student.email.trim().lowercase()
+            val cleanRollNumber = student.rollNumber.trim().lowercase()
+            val cleanName = student.name.trim().lowercase().replace(" ", "")
 
-            emailMatch || rollMatch || nameMatch
+            val isEmailMatch = cleanStudentEmail.isNotBlank() && cleanStudentEmail == cleanEmailInput
+            val isRollMatch = cleanRollNumber == cleanEmailInput || cleanRollNumber == trimmedPassword
+            val isNameMatch = cleanEmailInput.isNotBlank() && cleanName.contains(cleanEmailInput.substringBefore("@"))
+
+            isEmailMatch || isRollMatch || isNameMatch
         }
 
         val isDefaultDemoCreds = trimmedEmail == "student@student.com" && trimmedPassword == "student@student.com"
@@ -136,8 +141,8 @@ object AuthManager {
             return Result.success(studentUser)
         }
 
-        // 4. Invalid Credentials Error
-        return Result.failure(Exception("Invalid credentials. Please contact admin."))
+        // 4. Invalid Student Credentials Error
+        return Result.failure(Exception("Invalid student credentials. Please contact admin."))
     }
 
     fun logout() {

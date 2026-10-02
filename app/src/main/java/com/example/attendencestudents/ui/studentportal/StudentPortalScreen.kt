@@ -75,13 +75,20 @@ fun StudentPortalScreen(
     val allRecords by viewModel.repository.attendanceRecords.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
 
-    // Binds strictly to the logged-in student's record
+    // Binds strictly to the logged-in student's record only
     val loggedInStudent = remember(allStudents, currentUser) {
-        allStudents.firstOrNull { student ->
+        val studentFromList = allStudents.firstOrNull { student ->
             student.id == currentUser?.studentId ||
-                    student.email.trim().equals(currentUser?.email?.trim(), ignoreCase = true) ||
+                    (student.email.isNotBlank() && student.email.trim().equals(currentUser?.email?.trim(), ignoreCase = true)) ||
                     student.rollNumber == currentUser?.rollNumber
-        } ?: allStudents.firstOrNull()
+        }
+        studentFromList ?: Student(
+            id = currentUser?.studentId ?: "STU1",
+            name = currentUser?.name ?: "Student User",
+            rollNumber = currentUser?.rollNumber ?: "101",
+            semester = currentUser?.semester ?: 1,
+            email = currentUser?.email ?: ""
+        )
     }
 
     var activeTab by remember { mutableStateOf(PortalTab.DAY) }
@@ -99,10 +106,10 @@ fun StudentPortalScreen(
     }
 
     // Semester state for Semester View
-    var selectedSemester by remember { mutableIntStateOf(loggedInStudent?.semester ?: 1) }
+    var selectedSemester by remember { mutableIntStateOf(loggedInStudent.semester) }
 
     LaunchedEffect(loggedInStudent) {
-        loggedInStudent?.let { selectedSemester = it.semester }
+        selectedSemester = loggedInStudent.semester
     }
 
     Column(
