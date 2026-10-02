@@ -2,6 +2,7 @@ package com.example.attendencestudents.data.remote
 
 import com.example.attendencestudents.data.model.ActivityLog
 import com.example.attendencestudents.data.model.AttendanceRecord
+import com.example.attendencestudents.data.model.LoginUser
 import com.example.attendencestudents.data.model.Student
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -67,6 +68,24 @@ class SupabaseClient {
                 if (response.isSuccessful) {
                     val type = object : TypeToken<List<Student>>() {}.type
                     val list: List<Student> = gson.fromJson(bodyString, type) ?: emptyList()
+                    Result.success(list)
+                } else {
+                    Result.failure(Exception("HTTP ${response.code}: $bodyString"))
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun fetchLoginUsers(): Result<List<LoginUser>> = withContext(Dispatchers.IO) {
+        try {
+            val request = buildRequest("loginuser?select=*")
+            okHttpClient.newCall(request).execute().use { response ->
+                val bodyString = response.body?.string() ?: ""
+                if (response.isSuccessful) {
+                    val type = object : TypeToken<List<LoginUser>>() {}.type
+                    val list: List<LoginUser> = gson.fromJson(bodyString, type) ?: emptyList()
                     Result.success(list)
                 } else {
                     Result.failure(Exception("HTTP ${response.code}: $bodyString"))

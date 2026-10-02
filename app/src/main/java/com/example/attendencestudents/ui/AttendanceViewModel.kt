@@ -88,12 +88,12 @@ class AttendanceViewModel(
         _liveTime.value = SimpleDateFormat("hh:mm:ss a", Locale.getDefault()).format(now)
     }
 
-    fun login(email: String, pass: String): Result<Boolean> {
-        val result = AuthManager.login(email, pass)
+    suspend fun login(email: String, pass: String): Result<Boolean> {
+        val result = AuthManager.login(email, pass, repository.supabaseClient, repository.students.value)
         return if (result.isSuccess) {
             Result.success(true)
         } else {
-            Result.failure(result.exceptionOrNull() ?: Exception("Login failed"))
+            Result.failure(result.exceptionOrNull() ?: Exception("Invalid student, please contact admin."))
         }
     }
 

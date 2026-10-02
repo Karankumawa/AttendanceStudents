@@ -1,32 +1,26 @@
 package com.example.attendencestudents.ui.auth
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,10 +32,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -51,16 +45,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.attendencestudents.ui.components.AppLogo
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: (String, String) -> Result<Boolean>
+    onLoginSuccess: suspend (String, String) -> Result<Boolean>
 ) {
-    // Empty fields by default - 100% blank without pre-filled values
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+
+    val coroutineScope = rememberCoroutineScope()
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -78,7 +75,7 @@ fun LoginScreen(
                 verticalArrangement = Arrangement.Center
             ) {
                 // Header Unique App Logo
-                AppLogo(size = 80.dp, showBadge = true)
+                AppLogo(size = 84.dp, showBadge = true)
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -92,46 +89,12 @@ fun LoginScreen(
                 )
 
                 Text(
-                    text = "Sign in to Admin or Student Portal",
+                    text = "Enter student credentials to access portal",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.secondary
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Credentials Info Badge
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
-                    )
-                ) {
-                    /*Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        /*Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = "Info",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )*/
-                        Spacer(modifier = Modifier.width(8.dp))
-                        /*Column {
-                            Text(
-                                text = "Admin: admin@admin.com",
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
-                            )
-                            Text(
-                                text = "Student Portal: student@student.com",
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
-                            )
-                        }*/
-                    }*/
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(28.dp))
 
                 // Login Card
                 Card(
@@ -168,6 +131,7 @@ fun LoginScreen(
                             },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
+                            enabled = !isLoading,
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Email,
                                 autoCorrectEnabled = false
@@ -201,6 +165,7 @@ fun LoginScreen(
                             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
+                            enabled = !isLoading,
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Password,
                                 autoCorrectEnabled = false
@@ -208,13 +173,21 @@ fun LoginScreen(
                         )
 
                         if (errorMessage != null) {
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text(
-                                text = errorMessage!!,
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Card(
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)),
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(
+                                    text = errorMessage!!,
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(10.dp),
+                                    textAlign = TextAlign.Center
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(24.dp))
@@ -225,12 +198,18 @@ fun LoginScreen(
                                 if (email.isBlank() || password.isBlank()) {
                                     errorMessage = "Please enter Email and Password"
                                 } else {
-                                    val res = onLoginSuccess(email, password)
-                                    if (res.isFailure) {
-                                        errorMessage = res.exceptionOrNull()?.message ?: "Login failed"
+                                    isLoading = true
+                                    errorMessage = null
+                                    coroutineScope.launch {
+                                        val res = onLoginSuccess(email, password)
+                                        isLoading = false
+                                        if (res.isFailure) {
+                                            errorMessage = res.exceptionOrNull()?.message ?: "Invalid student, please contact admin."
+                                        }
                                     }
                                 }
                             },
+                            enabled = !isLoading,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(50.dp),
@@ -239,43 +218,24 @@ fun LoginScreen(
                                 containerColor = MaterialTheme.colorScheme.primary
                             )
                         ) {
-                            Text(
-                                text = "LOGIN TO PORTAL",
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    color = Color.White,
+                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.size(24.dp)
                                 )
-                            )
+                            } else {
+                                Text(
+                                    text = "LOGIN TO PORTAL",
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp
+                                    )
+                                )
+                            }
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Supabase Info Badge
-                /*Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Color(0xFF3ECF8E).copy(alpha = 0.15f))
-                        .padding(horizontal = 14.dp, vertical = 6.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.CloudDone,
-                        contentDescription = "Supabase",
-                        tint = Color(0xFF10B981),
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Supabase Database Live",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = Color(0xFF065F46),
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    )
-                }*/
             }
         }
     }

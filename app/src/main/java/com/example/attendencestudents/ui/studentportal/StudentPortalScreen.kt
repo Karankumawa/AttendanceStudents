@@ -1,7 +1,5 @@
 package com.example.attendencestudents.ui.studentportal
 
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,34 +15,27 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -82,15 +73,20 @@ fun StudentPortalScreen(
 ) {
     val allStudents by viewModel.repository.students.collectAsState()
     val allRecords by viewModel.repository.attendanceRecords.collectAsState()
+    val currentUser by viewModel.currentUser.collectAsState()
 
-    // Selected student profile
-    var selectedStudent by remember(allStudents) {
-        mutableStateOf(allStudents.firstOrNull())
+    // Binds strictly to the logged-in student's record
+    val loggedInStudent = remember(allStudents, currentUser) {
+        allStudents.firstOrNull { student ->
+            student.id == currentUser?.studentId ||
+                    student.email.trim().equals(currentUser?.email?.trim(), ignoreCase = true) ||
+                    student.rollNumber == currentUser?.rollNumber
+        } ?: allStudents.firstOrNull()
     }
 
     var activeTab by remember { mutableStateOf(PortalTab.DAY) }
 
-    // Date state for Day View (yyyy-MM-dd)
+    // Date state for Day View
     val todayDateStr = remember {
         SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
     }
@@ -103,11 +99,10 @@ fun StudentPortalScreen(
     }
 
     // Semester state for Semester View
-    var selectedSemester by remember { mutableIntStateOf(selectedStudent?.semester ?: 1) }
+    var selectedSemester by remember { mutableIntStateOf(loggedInStudent?.semester ?: 1) }
 
-    // Update selected semester when selected student changes
-    LaunchedEffect(selectedStudent) {
-        selectedStudent?.let { selectedSemester = it.semester }
+    LaunchedEffect(loggedInStudent) {
+        loggedInStudent?.let { selectedSemester = it.semester }
     }
 
     Column(
@@ -135,14 +130,14 @@ fun StudentPortalScreen(
                 Spacer(modifier = Modifier.width(10.dp))
                 Column {
                     Text(
-                        text = "Student Portal — Read Only View",
+                        text = "Student Portal — Personal Attendance",
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onTertiaryContainer
                         )
                     )
                     Text(
-                        text = "Viewing rights only. Attendance records cannot be modified.",
+                        text = "Viewing personal records only. Attendance modification disabled.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
                     )
@@ -156,13 +151,9 @@ fun StudentPortalScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Student Profile Selector Header Card
+            // Student Profile Header Card (Single isolated student)
             item {
-                StudentProfileCard(
-                    students = allStudents,
-                    selectedStudent = selectedStudent,
-                    onStudentSelected = { selectedStudent = it }
-                )
+                StudentPersonalProfileCard(student = loggedInStudent)
             }
 
             // Tab Selector (Day, Month, Semester)
@@ -211,7 +202,7 @@ fun StudentPortalScreen(
                 PortalTab.DAY -> {
                     item {
                         DayAttendanceView(
-                            student = selectedStudent,
+                            student = loggedInStudent,
                             allRecords = allRecords,
                             selectedDate = selectedDayDate,
                             onDateChanged = { selectedDayDate = it }
@@ -221,7 +212,7 @@ fun StudentPortalScreen(
                 PortalTab.MONTH -> {
                     item {
                         MonthAttendanceView(
-                            student = selectedStudent,
+                            student = loggedInStudent,
                             allRecords = allRecords,
                             currentYearMonth = currentYearMonth,
                             onPrevMonth = {
@@ -238,7 +229,7 @@ fun StudentPortalScreen(
                 PortalTab.SEMESTER -> {
                     item {
                         SemesterAttendanceView(
-                            student = selectedStudent,
+                            student = loggedInStudent,
                             allRecords = allRecords,
                             selectedSemester = selectedSemester,
                             onSemesterChanged = { selectedSemester = it }
@@ -251,103 +242,58 @@ fun StudentPortalScreen(
 }
 
 @Composable
-fun StudentProfileCard(
-    students: List<Student>,
-    selectedStudent: Student?,
-    onStudentSelected: (Student) -> Unit
-) {
-    var expandedDropdown by remember { mutableStateOf(false) }
-
+fun StudentPersonalProfileCard(student: Student?) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Select Student Profile",
-                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.primary
-            )
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.width(14.dp))
 
-            Box {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { expandedDropdown = true }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = student?.name ?: "Student Profile",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+                Text(
+                    text = "Roll: ${student?.rollNumber ?: "N/A"} | Sem ${student?.semester ?: "-"} (${student?.department ?: "CSE"})",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = selectedStudent?.name ?: "No Student Selected",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-                            Text(
-                                text = "Roll: ${selectedStudent?.rollNumber ?: "N/A"} | Sem ${selectedStudent?.semester ?: "-"} | ${selectedStudent?.department ?: "CSE"}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        Text(
-                            text = "Switch",
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        )
-                    }
-                }
-
-                DropdownMenu(
-                    expanded = expandedDropdown,
-                    onDismissRequest = { expandedDropdown = false },
-                    modifier = Modifier.fillMaxWidth(0.9f)
-                ) {
-                    students.forEach { stu ->
-                        DropdownMenuItem(
-                            text = {
-                                Column {
-                                    Text(stu.name, fontWeight = FontWeight.Bold)
-                                    Text(
-                                        "Roll: ${stu.rollNumber} (Sem ${stu.semester} - ${stu.department})",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = Color.Gray
-                                    )
-                                }
-                            },
-                            onClick = {
-                                onStudentSelected(stu)
-                                expandedDropdown = false
-                            }
-                        )
-                    }
-                }
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Text(
+                    text = "MY RECORD",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
             }
         }
     }
