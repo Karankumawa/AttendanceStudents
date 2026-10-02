@@ -96,6 +96,23 @@ class SupabaseClient {
         }
     }
 
+    suspend fun insertLoginUser(loginUser: LoginUser): Result<LoginUser> = withContext(Dispatchers.IO) {
+        try {
+            val json = gson.toJson(loginUser)
+            val request = buildRequest("loginuser", method = "POST", jsonBody = json)
+            okHttpClient.newCall(request).execute().use { response ->
+                val bodyString = response.body?.string() ?: ""
+                if (response.isSuccessful) {
+                    Result.success(loginUser)
+                } else {
+                    Result.failure(Exception("HTTP ${response.code}: $bodyString"))
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun insertStudent(student: Student): Result<Student> = withContext(Dispatchers.IO) {
         try {
             val json = gson.toJson(student)

@@ -3,6 +3,7 @@ package com.example.attendencestudents.data.repository
 import com.example.attendencestudents.data.model.ActivityLog
 import com.example.attendencestudents.data.model.AttendanceRecord
 import com.example.attendencestudents.data.model.AttendanceStatus
+import com.example.attendencestudents.data.model.LoginUser
 import com.example.attendencestudents.data.model.SemesterSummary
 import com.example.attendencestudents.data.model.Student
 import com.example.attendencestudents.data.model.StudentStat
@@ -147,13 +148,14 @@ class AttendanceRepository(
     }
 
     suspend fun addStudent(name: String, rollNumber: String, semester: Int, department: String): Result<Student> {
+        val studentEmail = "${name.lowercase().replace(" ", ".")}@college.edu"
         val newStudent = Student(
             id = "STU${System.currentTimeMillis() % 100000}",
             name = name,
             rollNumber = rollNumber,
             semester = semester,
             department = department,
-            email = "${name.lowercase().replace(" ", ".")}@college.edu"
+            email = studentEmail
         )
 
         // Save locally first so user sees added student immediately in UI
@@ -161,6 +163,17 @@ class AttendanceRepository(
 
         try {
             val res = supabaseClient.insertStudent(newStudent)
+            // Sync user credentials to Supabase loginuser table
+            val loginUser = LoginUser(
+                email = studentEmail,
+                password = rollNumber,
+                name = name,
+                rollNumber = rollNumber,
+                studentId = newStudent.id,
+                semester = semester
+            )
+            supabaseClient.insertLoginUser(loginUser)
+
             if (res.isSuccess) {
                 _syncStatus.value = "Student Added & Synced with Supabase"
             } else {
