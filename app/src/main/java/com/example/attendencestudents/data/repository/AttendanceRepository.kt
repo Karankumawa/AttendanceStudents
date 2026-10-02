@@ -40,9 +40,7 @@ class AttendanceRepository(
         val remoteStudentsResult = supabaseClient.fetchStudents()
         if (remoteStudentsResult.isSuccess) {
             val fetched = remoteStudentsResult.getOrDefault(emptyList())
-            val fetchedIds = fetched.map { it.id }.toSet()
-            val localOnly = _students.value.filter { it.id !in fetchedIds }
-            _students.value = fetched + localOnly
+            _students.value = fetched
         } else {
             errorsCount++
         }
@@ -174,6 +172,23 @@ class AttendanceRepository(
         }
 
         return Result.success(newStudent)
+    }
+
+    suspend fun deleteStudent(studentId: String): Result<Boolean> {
+        _students.value = _students.value.filter { it.id != studentId }
+
+        try {
+            val res = supabaseClient.deleteStudent(studentId)
+            if (res.isSuccess) {
+                _syncStatus.value = "Student Deleted & Synced with Supabase"
+            } else {
+                _syncStatus.value = "Student Removed locally"
+            }
+        } catch (e: Exception) {
+            _syncStatus.value = "Student Removed locally"
+        }
+
+        return Result.success(true)
     }
 
     fun getAllSemesterSummaries(): List<SemesterSummary> {

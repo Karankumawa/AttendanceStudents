@@ -6,9 +6,12 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,23 +21,23 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assessment
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Class
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Percent
+import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -43,6 +46,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -64,6 +68,7 @@ fun SemesterStatsScreen(
     viewModel: AttendanceViewModel
 ) {
     val semesterSummaries by viewModel.semesterSummaries.collectAsState()
+    var selectedTabSemester by remember { mutableIntStateOf(0) } // 0 = ALL, 1..8 = Specific Semester
 
     val grandTotalClasses = semesterSummaries.sumOf { it.totalClasses }
     val grandTotalPresent = semesterSummaries.sumOf { it.totalPresent }
@@ -72,6 +77,12 @@ fun SemesterStatsScreen(
     val grandPercentage = if (grandTotalRecords > 0) {
         (grandTotalPresent.toDouble() / grandTotalRecords.toDouble()) * 100.0
     } else 85.0
+
+    val filteredSummaries = if (selectedTabSemester == 0) {
+        semesterSummaries
+    } else {
+        semesterSummaries.filter { it.semester == selectedTabSemester }
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -84,27 +95,24 @@ fun SemesterStatsScreen(
         item {
             Column {
                 Text(
-                    text = "All Semesters Attendance Dashboard",
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
+                    text = "Academic Attendance Analytics",
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
                 )
                 Text(
-                    text = "Consolidated class counts, student presence, absence, and percentages across Semester 1 to 8",
+                    text = "Executive performance reports and class attendance logs for Semesters 1 to 8",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
 
-        // Overall Summary Banner Card
+        // Executive Hero Summary Banner Card
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
                 ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
@@ -116,30 +124,29 @@ fun SemesterStatsScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                Icons.Default.Assessment,
+                                imageVector = Icons.Default.Assessment,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(28.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Overall Academic Summary",
+                                text = "Overall Academic Performance",
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                             )
                         }
 
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(MaterialTheme.colorScheme.primary)
-                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.primary
                         ) {
                             Text(
                                 text = String.format(Locale.getDefault(), "%.1f%% Avg", grandPercentage),
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     color = MaterialTheme.colorScheme.onPrimary,
                                     fontWeight = FontWeight.Bold
-                                )
+                                ),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                             )
                         }
                     }
@@ -150,32 +157,32 @@ fun SemesterStatsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        StatTile(
+                        ProfessionalStatTile(
                             title = "Total Classes",
                             value = "$grandTotalClasses",
                             icon = Icons.Default.Class,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.weight(1f)
                         )
-                        StatTile(
-                            title = "Total Present",
+                        ProfessionalStatTile(
+                            title = "Present",
                             value = "$grandTotalPresent",
                             icon = Icons.Default.CheckCircle,
-                            color = Color(0xFF16A34A),
+                            color = Color(0xFF10B981),
                             modifier = Modifier.weight(1f)
                         )
-                        StatTile(
-                            title = "Total Absent",
+                        ProfessionalStatTile(
+                            title = "Absent",
                             value = "$grandTotalAbsent",
                             icon = Icons.Default.Cancel,
-                            color = Color(0xFFDC2626),
+                            color = Color(0xFFF43F5E),
                             modifier = Modifier.weight(1f)
                         )
-                        StatTile(
+                        ProfessionalStatTile(
                             title = "Overall %",
                             value = String.format(Locale.getDefault(), "%.1f%%", grandPercentage),
                             icon = Icons.Default.Percent,
-                            color = Color(0xFF2563EB),
+                            color = Color(0xFF6366F1),
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -183,27 +190,85 @@ fun SemesterStatsScreen(
             }
         }
 
-        // Section Title: Per Semester Breakdown
+        // Semester Filter Chips Row
         item {
-            Text(
-                text = "Semester Wise Attendance Breakdown (1 to 8)",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                ),
-                modifier = Modifier.padding(top = 8.dp)
-            )
+            Column {
+                Text(
+                    text = "Filter by Semester",
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    ),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    item {
+                        val isAllSelected = selectedTabSemester == 0
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(
+                                    if (isAllSelected) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.surfaceVariant
+                                )
+                                .clickable { selectedTabSemester = 0 }
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "All Semesters",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isAllSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            )
+                        }
+                    }
+
+                    items((1..8).toList()) { sem ->
+                        val isSelected = selectedTabSemester == sem
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(
+                                    if (isSelected) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.surface
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.LightGray,
+                                    shape = RoundedCornerShape(16.dp)
+                                )
+                                .clickable { selectedTabSemester = sem }
+                                .padding(horizontal = 14.dp, vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Sem $sem",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                                )
+                            )
+                        }
+                    }
+                }
+            }
         }
 
-        // List of Cards for Semesters 1 to 8
-        items(semesterSummaries, key = { it.semester }) { summary ->
-            SemesterSummaryCard(summary = summary)
+        // List of Semester Cards
+        items(filteredSummaries, key = { it.semester }) { summary ->
+            ProfessionalSemesterCard(summary = summary)
         }
     }
 }
 
 @Composable
-fun StatTile(
+fun ProfessionalStatTile(
     title: String,
     value: String,
     icon: ImageVector,
@@ -214,7 +279,7 @@ fun StatTile(
         modifier = modifier.padding(2.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
+        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(22.dp))
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = value,
@@ -230,25 +295,31 @@ fun StatTile(
 }
 
 @Composable
-fun SemesterSummaryCard(summary: SemesterSummary) {
+fun ProfessionalSemesterCard(summary: SemesterSummary) {
     var expanded by remember { mutableStateOf(false) }
 
     val statusColor = when {
-        summary.attendancePercentage >= 75.0 -> Color(0xFF16A34A) // Green
-        summary.attendancePercentage >= 60.0 -> Color(0xFFD97706) // Amber
-        else -> Color(0xFFDC2626) // Red
+        summary.attendancePercentage >= 75.0 -> Color(0xFF10B981) // Green
+        summary.attendancePercentage >= 60.0 -> Color(0xFFF59E0B) // Amber
+        else -> Color(0xFFF43F5E) // Red
+    }
+
+    val statusText = when {
+        summary.attendancePercentage >= 75.0 -> "Good Standing"
+        summary.attendancePercentage >= 60.0 -> "At Risk"
+        else -> "Critical Low"
     }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Card Header
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -257,14 +328,14 @@ fun SemesterSummaryCard(summary: SemesterSummary) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(40.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.primaryContainer),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "S${summary.semester}",
-                            style = MaterialTheme.typography.labelLarge.copy(
+                            style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -277,27 +348,36 @@ fun SemesterSummaryCard(summary: SemesterSummary) {
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                         )
                         Text(
-                            text = "${summary.studentStats.size} Enrolled Students",
+                            text = "${summary.studentStats.size} Students Enrolled",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
 
-                // Percentage Badge
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(statusColor.copy(alpha = 0.15f))
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = statusColor.copy(alpha = 0.15f)
                 ) {
-                    Text(
-                        text = String.format(Locale.getDefault(), "%.1f%%", summary.attendancePercentage),
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            color = statusColor,
-                            fontWeight = FontWeight.Bold
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(statusColor)
                         )
-                    )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = String.format(Locale.getDefault(), "%.1f%% (%s)", summary.attendancePercentage, statusText),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = statusColor,
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                    }
                 }
             }
 
@@ -316,17 +396,17 @@ fun SemesterSummaryCard(summary: SemesterSummary) {
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Metrics Grid: Classes, Present, Absent, Percentage
+            // Metrics Grid
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                     .padding(12.dp),
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Total Classes", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                    Text("Classes", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                     Text(
                         text = "${summary.totalClasses}",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
@@ -339,7 +419,7 @@ fun SemesterSummaryCard(summary: SemesterSummary) {
                         text = "${summary.totalPresent}",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF16A34A)
+                            color = Color(0xFF10B981)
                         )
                     )
                 }
@@ -350,13 +430,13 @@ fun SemesterSummaryCard(summary: SemesterSummary) {
                         text = "${summary.totalAbsent}",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFFDC2626)
+                            color = Color(0xFFF43F5E)
                         )
                     )
                 }
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Attendance %", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                    Text("Avg %", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                     Text(
                         text = String.format(Locale.getDefault(), "%.1f%%", summary.attendancePercentage),
                         style = MaterialTheme.typography.titleMedium.copy(
@@ -369,14 +449,14 @@ fun SemesterSummaryCard(summary: SemesterSummary) {
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Expand Toggle Button
+            // Expand Button
             OutlinedButton(
                 onClick = { expanded = !expanded },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(10.dp)
             ) {
                 Text(
-                    text = if (expanded) "Hide Student Breakdown" else "View Student Breakdown (${summary.studentStats.size})",
+                    text = if (expanded) "Hide Roster" else "View Student Breakdown (${summary.studentStats.size})",
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
@@ -386,7 +466,7 @@ fun SemesterSummaryCard(summary: SemesterSummary) {
                 )
             }
 
-            // Expandable Student Roster List
+            // Student Roster Expandable
             AnimatedVisibility(
                 visible = expanded,
                 enter = fadeIn() + expandVertically(),
@@ -395,7 +475,7 @@ fun SemesterSummaryCard(summary: SemesterSummary) {
                 Column(modifier = Modifier.padding(top = 12.dp)) {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     Text(
-                        text = "Students Attendance Roster - Semester ${summary.semester}",
+                        text = "Students Performance Roster — Semester ${summary.semester}",
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -404,7 +484,7 @@ fun SemesterSummaryCard(summary: SemesterSummary) {
                     Spacer(modifier = Modifier.height(8.dp))
 
                     summary.studentStats.forEach { stat ->
-                        StudentStatRow(stat = stat)
+                        ProfessionalStudentRow(stat = stat)
                         Spacer(modifier = Modifier.height(6.dp))
                     }
                 }
@@ -414,16 +494,16 @@ fun SemesterSummaryCard(summary: SemesterSummary) {
 }
 
 @Composable
-fun StudentStatRow(stat: StudentStat) {
+fun ProfessionalStudentRow(stat: StudentStat) {
     val statColor = when {
-        stat.percentage >= 75.0 -> Color(0xFF16A34A)
-        stat.percentage >= 60.0 -> Color(0xFFD97706)
-        else -> Color(0xFFDC2626)
+        stat.percentage >= 75.0 -> Color(0xFF10B981)
+        stat.percentage >= 60.0 -> Color(0xFFF59E0B)
+        else -> Color(0xFFF43F5E)
     }
 
     Surface(
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -439,24 +519,23 @@ fun StudentStatRow(stat: StudentStat) {
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
                 )
                 Text(
-                    text = "Roll: ${stat.rollNumber} | P: ${stat.presentCount}  A: ${stat.absentCount}",
+                    text = "Roll: ${stat.rollNumber} | Present: ${stat.presentCount} | Absent: ${stat.absentCount}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(statColor.copy(alpha = 0.15f))
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = statColor.copy(alpha = 0.15f)
             ) {
                 Text(
                     text = String.format(Locale.getDefault(), "%.1f%%", stat.percentage),
                     style = MaterialTheme.typography.labelSmall.copy(
                         color = statColor,
                         fontWeight = FontWeight.Bold
-                    )
+                    ),
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                 )
             }
         }

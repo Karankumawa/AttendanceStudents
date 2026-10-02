@@ -26,14 +26,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -66,6 +69,7 @@ fun StudentsScreen(
     var searchQuery by remember { mutableStateOf("") }
     var selectedDepartment by remember { mutableStateOf("ALL") }
     var showAddDialog by remember { mutableStateOf(false) }
+    var studentToDelete by remember { mutableStateOf<Student?>(null) }
 
     // Filtered & Sorted according to Semester, Department, and Roll Number
     val filteredStudents = students
@@ -100,11 +104,11 @@ fun StudentsScreen(
 
             Column(modifier = Modifier.fillMaxSize()) {
                 Text(
-                    text = "Student Directory & Roster",
+                    text = "Student Directory & Admin Control",
                     style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
                 )
                 Text(
-                    text = "Search & Filter by Department (CSE, ECE, CIVIL, MECH, EEE) or Semester",
+                    text = "Add or Remove students. Changes automatically reflect in Supabase database.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -177,7 +181,10 @@ fun StudentsScreen(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         items(filteredStudents, key = { it.id }) { student ->
-                            StudentDirectoryCard(student = student)
+                            StudentDirectoryCard(
+                                student = student,
+                                onDeleteStudent = { studentToDelete = it }
+                            )
                         }
                     }
                 } else {
@@ -186,7 +193,10 @@ fun StudentsScreen(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         items(filteredStudents, key = { it.id }) { student ->
-                            StudentDirectoryCard(student = student)
+                            StudentDirectoryCard(
+                                student = student,
+                                onDeleteStudent = { studentToDelete = it }
+                            )
                         }
                     }
                 }
@@ -203,10 +213,52 @@ fun StudentsScreen(
             }
         )
     }
+
+    // Delete Confirmation Dialog
+    if (studentToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { studentToDelete = null },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Remove Student?")
+                }
+            },
+            text = {
+                Text("Are you sure you want to remove ${studentToDelete?.name} (Roll: ${studentToDelete?.rollNumber}, Sem ${studentToDelete?.semester})? This will delete the student record from local storage and Supabase database.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        studentToDelete?.let { viewModel.deleteStudent(it.id) }
+                        studentToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("DELETE & SYNC")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { studentToDelete = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }
 
 @Composable
-fun StudentDirectoryCard(student: Student) {
+fun StudentDirectoryCard(
+    student: Student,
+    onDeleteStudent: (Student) -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
@@ -223,7 +275,7 @@ fun StudentDirectoryCard(student: Student) {
         ) {
             Box(
                 modifier = Modifier
-                    .size(46.dp)
+                    .size(44.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
@@ -236,7 +288,7 @@ fun StudentDirectoryCard(student: Student) {
                 )
             }
 
-            Spacer(modifier = Modifier.width(14.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -244,44 +296,19 @@ fun StudentDirectoryCard(student: Student) {
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                 )
                 Text(
-                    text = "Roll: ${student.rollNumber}",
+                    text = "Roll: ${student.rollNumber} | Sem ${student.semester} (${student.department})",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                // Branch Badge
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.secondaryContainer)
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = student.department.take(5),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                    )
-                }
-
-                // Semester Badge
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.primaryContainer)
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = "Sem ${student.semester}",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    )
-                }
+            // Remove Button
+            IconButton(onClick = { onDeleteStudent(student) }) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Remove Student",
+                    tint = MaterialTheme.colorScheme.error
+                )
             }
         }
     }

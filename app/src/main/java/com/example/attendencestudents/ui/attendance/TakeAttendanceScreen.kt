@@ -29,7 +29,6 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -103,7 +102,6 @@ fun TakeAttendanceScreen(
 
     val presentCount = students.count { (studentAttendanceMap[it.id] ?: AttendanceStatus.UNMARKED) == AttendanceStatus.PRESENT }
     val absentCount = students.count { (studentAttendanceMap[it.id] ?: AttendanceStatus.UNMARKED) == AttendanceStatus.ABSENT }
-    val unmarkedCount = students.size - presentCount - absentCount
 
     BoxWithConstraints(
         modifier = Modifier
@@ -113,66 +111,65 @@ fun TakeAttendanceScreen(
         val isWideScreen = maxWidth > 600.dp
 
         Column(modifier = Modifier.fillMaxSize()) {
-            // Semester Selector Header
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                    .padding(vertical = 12.dp)
+            // Top Bar: Semester Selector
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = "Select Semester",
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    ),
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                )
+                Column(modifier = Modifier.padding(vertical = 10.dp)) {
+                    Text(
+                        text = "Select Semester",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        ),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
+                    )
 
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items((1..8).toList()) { sem ->
-                        val isSelected = sem == selectedSemester
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(
-                                    if (isSelected) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.surface
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items((1..8).toList()) { sem ->
+                            val isSelected = sem == selectedSemester
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(
+                                        if (isSelected) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.surface
+                                    )
+                                    .border(
+                                        width = 1.dp,
+                                        color = if (isSelected) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                        shape = RoundedCornerShape(16.dp)
+                                    )
+                                    .clickable { viewModel.setSemester(sem) }
+                                    .padding(horizontal = 14.dp, vertical = 6.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Semester $sem",
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                                    )
                                 )
-                                .border(
-                                    width = 1.dp,
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                                    shape = RoundedCornerShape(20.dp)
-                                )
-                                .clickable { viewModel.setSemester(sem) }
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "Semester $sem",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                                    else MaterialTheme.colorScheme.onSurface
-                                )
-                            )
+                            }
                         }
                     }
                 }
             }
 
-            // Subject Dropdown & Live Date & Time Display
+            // Session Configuration Card
             Column(modifier = Modifier.padding(16.dp)) {
-                // Live Date & Time Badge Card
+                // Live Session Banner Card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
                     )
                 ) {
                     Row(
@@ -191,7 +188,7 @@ fun TakeAttendanceScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "LIVE",
+                                text = "LIVE SESSION",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     color = Color(0xFF047857),
                                     fontWeight = FontWeight.Bold
@@ -204,7 +201,7 @@ fun TakeAttendanceScreen(
                                 imageVector = Icons.Default.DateRange,
                                 contentDescription = "Date",
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
@@ -218,7 +215,7 @@ fun TakeAttendanceScreen(
                                 imageVector = Icons.Default.Schedule,
                                 contentDescription = "Time",
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
@@ -234,7 +231,7 @@ fun TakeAttendanceScreen(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Subject Dropdown
+                // Subject Selector
                 Box(modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(
                         value = selectedSubject,
@@ -278,7 +275,7 @@ fun TakeAttendanceScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Quick Actions & Counters
+                // Quick Action Buttons & Status Counters
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -321,9 +318,9 @@ fun TakeAttendanceScreen(
                         }
                     }
 
-                    // Counters Pill
+                    // Counters Box
                     Surface(
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(10.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant,
                         modifier = Modifier.padding(2.dp)
                     ) {
@@ -334,25 +331,12 @@ fun TakeAttendanceScreen(
                             Text("P: $presentCount", style = MaterialTheme.typography.labelSmall.copy(color = Color(0xFF15803D), fontWeight = FontWeight.Bold))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("A: $absentCount", style = MaterialTheme.typography.labelSmall.copy(color = Color(0xFFB91C1C), fontWeight = FontWeight.Bold))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Neutral: $unmarkedCount", style = MaterialTheme.typography.labelSmall.copy(color = Color.Gray, fontWeight = FontWeight.Bold))
                         }
                     }
                 }
-
-                // Info hint
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Live timestamp will automatically register with every submission.",
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    )
-                }
             }
 
-            // Students Roster Container - Adaptive Grid or Column
+            // Student Roster Grid/List
             if (students.isEmpty()) {
                 Box(
                     modifier = Modifier
@@ -361,7 +345,7 @@ fun TakeAttendanceScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No students found in Semester $selectedSemester in Supabase",
+                        text = "No students found in Semester $selectedSemester",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -408,7 +392,7 @@ fun TakeAttendanceScreen(
                 }
             }
 
-            // Bottom Submit Bar
+            // Bottom Submit Button Bar
             Surface(
                 shadowElevation = 8.dp,
                 color = MaterialTheme.colorScheme.surface,
@@ -504,7 +488,6 @@ fun StudentAttendanceRow(
                             color = Color(0xFF1E293B)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
-                        // Branch Badge
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
@@ -530,12 +513,11 @@ fun StudentAttendanceRow(
                 }
             }
 
-            // 3-Way Choice Pills (NEUTRAL, PRESENT, ABSENT)
+            // Choice Pills (P, A)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // PRESENT Pill Button
                 StatusPillButton(
                     label = "P",
                     isSelected = status == AttendanceStatus.PRESENT,
@@ -547,7 +529,6 @@ fun StudentAttendanceRow(
                     }
                 )
 
-                // ABSENT Pill Button
                 StatusPillButton(
                     label = "A",
                     isSelected = status == AttendanceStatus.ABSENT,

@@ -193,6 +193,14 @@ class AttendanceViewModel(
         }
     }
 
+    fun deleteStudent(studentId: String) {
+        viewModelScope.launch {
+            repository.deleteStudent(studentId)
+            repository.syncWithSupabase()
+            updateSemesterSummaries()
+        }
+    }
+
     fun refreshData() {
         viewModelScope.launch {
             repository.syncWithSupabase()

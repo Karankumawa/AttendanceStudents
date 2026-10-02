@@ -48,6 +48,7 @@ class SupabaseClient {
                 requestBuilder.post(body)
             }
             "DELETE" -> {
+                requestBuilder.addHeader("Prefer", "return=representation")
                 requestBuilder.delete()
             }
             else -> {
@@ -85,6 +86,22 @@ class SupabaseClient {
                 if (response.isSuccessful) {
                     Result.success(student)
                 } else {
+                    Result.failure(Exception("HTTP ${response.code}: $bodyString"))
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteStudent(studentId: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val request = buildRequest("students?id=eq.$studentId", method = "DELETE")
+            okHttpClient.newCall(request).execute().use { response ->
+                if (response.isSuccessful) {
+                    Result.success(true)
+                } else {
+                    val bodyString = response.body?.string() ?: ""
                     Result.failure(Exception("HTTP ${response.code}: $bodyString"))
                 }
             }
