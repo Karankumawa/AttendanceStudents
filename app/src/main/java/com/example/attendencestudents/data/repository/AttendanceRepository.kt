@@ -40,6 +40,7 @@ class AttendanceRepository(
         val remoteStudentsResult = supabaseClient.fetchStudents()
         if (remoteStudentsResult.isSuccess) {
             val fetched = remoteStudentsResult.getOrDefault(emptyList())
+            // Replace local list with Supabase remote list so database deletions reflect instantly in app
             _students.value = fetched
         } else {
             errorsCount++
@@ -48,9 +49,8 @@ class AttendanceRepository(
         val remoteAttendanceResult = supabaseClient.fetchAttendanceRecords()
         if (remoteAttendanceResult.isSuccess) {
             val fetchedRecs = remoteAttendanceResult.getOrDefault(emptyList())
-            val fetchedIds = fetchedRecs.map { it.id }.toSet()
-            val localOnly = _attendanceRecords.value.filter { it.id !in fetchedIds }
-            _attendanceRecords.value = fetchedRecs + localOnly
+            // Replace local list with Supabase remote list so database deletions reflect instantly in app
+            _attendanceRecords.value = fetchedRecs
         } else {
             errorsCount++
         }
@@ -58,9 +58,8 @@ class AttendanceRepository(
         val remoteActivityResult = supabaseClient.fetchActivityLogs()
         if (remoteActivityResult.isSuccess) {
             val fetchedLogs = remoteActivityResult.getOrDefault(emptyList())
-            val fetchedIds = fetchedLogs.map { it.id }.toSet()
-            val localOnly = _activityLogs.value.filter { it.id !in fetchedIds }
-            _activityLogs.value = fetchedLogs + localOnly
+            // Replace local list with Supabase remote list so database deletions reflect instantly in app
+            _activityLogs.value = fetchedLogs
         } else {
             errorsCount++
         }
