@@ -51,6 +51,7 @@ import com.example.attendencestudents.data.auth.UserRole
 import com.example.attendencestudents.ui.activity.ActivityScreen
 import com.example.attendencestudents.ui.attendance.TakeAttendanceScreen
 import com.example.attendencestudents.ui.auth.LoginScreen
+import com.example.attendencestudents.ui.components.AppHeaderBranding
 import com.example.attendencestudents.ui.stats.SemesterStatsScreen
 import com.example.attendencestudents.ui.studentportal.StudentPortalScreen
 import com.example.attendencestudents.ui.students.StudentsScreen
@@ -96,20 +97,10 @@ fun MainContainer(
             topBar = {
                 TopAppBar(
                     title = {
-                        Column {
-                            Text(
-                                text = if (isStudentRole) "Student Attendance Portal" else "Attendance Portal (Admin)",
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 18.sp
-                                )
-                            )
-                            Text(
-                                text = "Logged in as: ${currentUser?.email ?: "user"}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                        AppHeaderBranding(
+                            title = if (isStudentRole) "Student Portal" else "Attendance Portal",
+                            subtitle = "Logged in as: ${currentUser?.email ?: "user"}"
+                        )
                     },
                     actions = {
                         // Role / Read-Only Badge

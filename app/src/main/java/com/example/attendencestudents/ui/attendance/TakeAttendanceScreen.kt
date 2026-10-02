@@ -65,10 +65,7 @@ val SUBJECT_OPTIONS = listOf(
     "CSE - Operating Systems & Networks",
     "ECE - Digital Electronics & Signals",
     "ECE - Communication Systems",
-    "CIVIL - Structural Analysis & Design",
-    "CIVIL - Environmental Engineering",
-    "MECH - Thermodynamics & Robotics",
-    "EEE - Power Systems & Circuits"
+    "CIVIL - Structural Analysis & Design"
 )
 
 @Composable
