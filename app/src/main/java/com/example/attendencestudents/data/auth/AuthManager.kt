@@ -52,7 +52,15 @@ object AuthManager {
             return Result.success(adminUser)
         }
 
-        // 2. Query Supabase loginuser Table for Student Login
+        // Fetch fresh students from Supabase if list is currently empty
+        val studentsList = if (registeredStudents.isEmpty()) {
+            val fetchRes = supabaseClient.fetchStudents()
+            fetchRes.getOrDefault(emptyList())
+        } else {
+            registeredStudents
+        }
+
+        // 2. Query Supabase loginuser Table (if present)
         val loginUsersResult = supabaseClient.fetchLoginUsers()
         if (loginUsersResult.isSuccess) {
             val loginUsers = loginUsersResult.getOrDefault(emptyList())
@@ -62,7 +70,7 @@ object AuthManager {
             }
 
             if (matchedUser != null) {
-                val matchingStudent = registeredStudents.firstOrNull {
+                val matchingStudent = studentsList.firstOrNull {
                     it.id == matchedUser.studentId || it.email.trim().equals(matchedUser.email.trim(), ignoreCase = true)
                 }
 
@@ -80,31 +88,34 @@ object AuthManager {
             }
         }
 
-        // 3. Fallback Student Login Check against registered students table or default credentials
-        val matchingRegisteredStudent = registeredStudents.firstOrNull {
-            it.email.trim().equals(trimmedEmail, ignoreCase = true) ||
-                    it.name.lowercase().replace(" ", "") == trimmedEmail.substringBefore("@")
+        // 3. Fallback Check: Authenticate directly against Supabase Students Table
+        val matchedStudent = studentsList.firstOrNull { student ->
+            val emailMatch = student.email.trim().equals(trimmedEmail, ignoreCase = true)
+            val rollMatch = student.rollNumber.trim().equals(trimmedEmail, ignoreCase = true) ||
+                    student.rollNumber.trim().equals(trimmedPassword, ignoreCase = true)
+            val nameMatch = student.name.lowercase().replace(" ", "").contains(trimmedEmail.substringBefore("@"))
+
+            emailMatch || rollMatch || nameMatch
         }
 
-        val isDefaultStudentCreds = (trimmedEmail == "student@student.com" && trimmedPassword == "student@student.com") ||
-                (matchingRegisteredStudent != null && (trimmedPassword == matchingRegisteredStudent.rollNumber || trimmedPassword == "student@student.com"))
+        val isDefaultDemoCreds = trimmedEmail == "student@student.com" && trimmedPassword == "student@student.com"
 
-        if (isDefaultStudentCreds || matchingRegisteredStudent != null) {
-            val studentObj = matchingRegisteredStudent ?: registeredStudents.firstOrNull()
+        if (matchedStudent != null || isDefaultDemoCreds) {
+            val targetStudent = matchedStudent ?: studentsList.firstOrNull()
             val studentUser = User(
-                email = if (trimmedEmail.isNotBlank()) trimmedEmail else (studentObj?.email ?: "student@student.com"),
-                name = studentObj?.name ?: "Student User",
+                email = targetStudent?.email?.ifBlank { trimmedEmail } ?: trimmedEmail,
+                name = targetStudent?.name ?: "Student User",
                 role = UserRole.STUDENT,
-                studentId = studentObj?.id ?: "STU1",
-                rollNumber = studentObj?.rollNumber ?: "101",
-                semester = studentObj?.semester ?: 1
+                studentId = targetStudent?.id ?: "STU1",
+                rollNumber = targetStudent?.rollNumber ?: "101",
+                semester = targetStudent?.semester ?: 1
             )
             _currentUser.value = studentUser
             _isLoggedIn.value = true
             return Result.success(studentUser)
         }
 
-        // 4. Invalid Student Notification
+        // 4. Invalid Student Credentials Error
         return Result.failure(Exception("Invalid student, please contact admin."))
     }
 
