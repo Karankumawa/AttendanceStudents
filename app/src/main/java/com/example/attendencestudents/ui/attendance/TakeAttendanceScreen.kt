@@ -432,7 +432,8 @@ fun StudentAttendanceRow(
     val cardBg = when (status) {
         AttendanceStatus.PRESENT -> Color(0xFFF0FDF4)
         AttendanceStatus.ABSENT -> Color(0xFFFFF1F2)
-        AttendanceStatus.UNMARKED -> MaterialTheme.colorScheme.surface
+        AttendanceStatus.LEAVE -> Color(0xFFFEF3C7)
+        else -> MaterialTheme.colorScheme.surface
     }
 
     Card(
@@ -460,7 +461,8 @@ fun StudentAttendanceRow(
                             when (status) {
                                 AttendanceStatus.PRESENT -> Color(0xFFBBF7D0)
                                 AttendanceStatus.ABSENT -> Color(0xFFFECDD3)
-                                AttendanceStatus.UNMARKED -> MaterialTheme.colorScheme.surfaceVariant
+                                AttendanceStatus.LEAVE -> Color(0xFFFDE68A)
+                                else -> MaterialTheme.colorScheme.surfaceVariant
                             }
                         ),
                     contentAlignment = Alignment.Center
@@ -472,7 +474,8 @@ fun StudentAttendanceRow(
                             color = when (status) {
                                 AttendanceStatus.PRESENT -> Color(0xFF166534)
                                 AttendanceStatus.ABSENT -> Color(0xFF991B1B)
-                                AttendanceStatus.UNMARKED -> MaterialTheme.colorScheme.onSurfaceVariant
+                                AttendanceStatus.LEAVE -> Color(0xFF92400E)
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
                             }
                         )
                     )

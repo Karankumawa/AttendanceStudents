@@ -68,6 +68,13 @@ enum class PortalTab(val title: String) {
 }
 
 @Composable
+fun StudentDashboardScreen(
+    viewModel: AttendanceViewModel
+) {
+    StudentPortalScreen(viewModel = viewModel)
+}
+
+@Composable
 fun StudentPortalScreen(
     viewModel: AttendanceViewModel
 ) {

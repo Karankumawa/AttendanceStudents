@@ -134,7 +134,8 @@ class AttendanceViewModel(
         val nextStatus = when (currentStatus) {
             AttendanceStatus.UNMARKED -> AttendanceStatus.PRESENT
             AttendanceStatus.PRESENT -> AttendanceStatus.ABSENT
-            AttendanceStatus.ABSENT -> AttendanceStatus.UNMARKED
+            AttendanceStatus.ABSENT -> AttendanceStatus.LEAVE
+            else -> AttendanceStatus.UNMARKED
         }
         currentMap[studentId] = nextStatus
         _studentAttendanceMap.value = currentMap

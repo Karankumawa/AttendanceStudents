@@ -63,6 +63,13 @@ enum class NavSection(val title: String, val icon: ImageVector) {
     STUDENTS("Students", Icons.Default.People)
 }
 
+@Composable
+fun AdminDashboardScreen(
+    viewModel: AttendanceViewModel
+) {
+    MainContainer(viewModel = viewModel)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainContainer(
