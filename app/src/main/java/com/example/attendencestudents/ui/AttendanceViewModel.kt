@@ -34,8 +34,11 @@ class AttendanceViewModel(
     private val _selectedSemester = MutableStateFlow<Int>(1)
     val selectedSemester: StateFlow<Int> = _selectedSemester.asStateFlow()
 
-    private val _selectedSubject = MutableStateFlow<String>("Data Structures & Algorithms")
+    private val _selectedSubject = MutableStateFlow<String>("CSE - Data Structures & Algorithms")
     val selectedSubject: StateFlow<String> = _selectedSubject.asStateFlow()
+
+    private val _selectedDepartmentFilter = MutableStateFlow<String>("ALL")
+    val selectedDepartmentFilter: StateFlow<String> = _selectedDepartmentFilter.asStateFlow()
 
     private val _liveDate = MutableStateFlow<String>(
         SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
@@ -53,11 +56,41 @@ class AttendanceViewModel(
 
     val activityLogs: StateFlow<List<ActivityLog>> = repository.activityLogs
 
+    // Combines Students, Semester, Subject, and Department Filter to filter roster dynamically
     val studentsInSelectedSemester: StateFlow<List<Student>> = combine(
         repository.students,
-        _selectedSemester
-    ) { allStudents, sem ->
-        allStudents.filter { it.semester == sem }
+        _selectedSemester,
+        _selectedSubject,
+        _selectedDepartmentFilter
+    ) { allStudents, sem, subj, deptFilter ->
+        // 1. Filter by Semester
+        val semStudents = allStudents.filter { it.semester == sem }
+
+        // 2. Extract Branch/Department Prefix from Subject Name e.g. "EEE - Power Systems" -> "EEE"
+        val subjectDeptPrefix = if (subj.contains("-")) {
+            subj.substringBefore("-").trim()
+        } else ""
+
+        val effectiveDept = if (deptFilter != "ALL") deptFilter else subjectDeptPrefix
+
+        if (effectiveDept.isNotBlank() && effectiveDept != "ALL" && effectiveDept != "General") {
+            val branchFiltered = semStudents.filter { student ->
+                val sDept = student.department.uppercase()
+                val targetDept = effectiveDept.uppercase()
+
+                sDept.contains(targetDept) ||
+                        (targetDept == "CSE" && (sDept.contains("COMPUTER") || sDept.contains("CSE"))) ||
+                        (targetDept == "ECE" && (sDept.contains("ELECTRONICS") || sDept.contains("ECE"))) ||
+                        (targetDept == "EEE" && (sDept.contains("ELECTRICAL") || sDept.contains("EEE"))) ||
+                        (targetDept == "CIVIL" && sDept.contains("CIVIL")) ||
+                        (targetDept == "MECH" && (sDept.contains("MECHANICAL") || sDept.contains("MECH")))
+            }
+
+            // If students exist in that specific branch, return filtered list; else fallback to all semester students
+            if (branchFiltered.isNotEmpty()) branchFiltered else semStudents
+        } else {
+            semStudents
+        }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _semesterSummaries = MutableStateFlow<List<SemesterSummary>>(emptyList())
@@ -104,15 +137,15 @@ class AttendanceViewModel(
     fun setSemester(sem: Int) {
         _selectedSemester.value = sem
         val defaultSubject = when (sem) {
-            1 -> "Programming in C"
-            2 -> "Data Structures & Algorithms"
-            3 -> "Object Oriented Programming"
-            4 -> "Database Management Systems"
-            5 -> "Operating Systems"
-            6 -> "Computer Networks"
-            7 -> "Artificial Intelligence & ML"
-            8 -> "Cloud Computing & DevOps"
-            else -> "Core Computer Science"
+            1 -> "CSE - Programming in C"
+            2 -> "CSE - Data Structures & Algorithms"
+            3 -> "ECE - Object Oriented Programming"
+            4 -> "CSE - Database Management Systems"
+            5 -> "ECE - Communication Systems"
+            6 -> "EEE - Power Electronics & Drives"
+            7 -> "CIVIL - Structural Analysis & Design"
+            8 -> "MECH - Robotics & Automation"
+            else -> "CSE - Core Computer Science"
         }
         _selectedSubject.value = defaultSubject
         resetAttendanceForCurrentSemester()
@@ -120,6 +153,14 @@ class AttendanceViewModel(
 
     fun setSubject(subject: String) {
         _selectedSubject.value = subject
+        // Reset manual department filter so subject prefix takes effect
+        _selectedDepartmentFilter.value = "ALL"
+        resetAttendanceForCurrentSemester()
+    }
+
+    fun setDepartmentFilter(dept: String) {
+        _selectedDepartmentFilter.value = dept
+        resetAttendanceForCurrentSemester()
     }
 
     fun setStudentStatus(studentId: String, status: AttendanceStatus) {

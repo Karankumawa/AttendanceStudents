@@ -68,10 +68,12 @@ val SUBJECT_OPTIONS = listOf(
     "CSE - Operating Systems & Networks",
     "ECE - Digital Electronics & Signals",
     "ECE - Communication Systems",
+    "EEE - Power Electronics & Drives",
     "CIVIL - Structural Analysis & Design",
-    "MECH - Robotics & Automation",
-    "EEE - Power Electronics & Drives"
+    "MECH - Robotics & Automation"
 )
+
+val BRANCH_CHIPS = listOf("ALL", "CSE", "ECE", "EEE", "CIVIL", "MECH")
 
 @Composable
 fun TakeAttendanceScreen(
@@ -80,6 +82,7 @@ fun TakeAttendanceScreen(
 ) {
     val selectedSemester by viewModel.selectedSemester.collectAsState()
     val selectedSubject by viewModel.selectedSubject.collectAsState()
+    val selectedDeptFilter by viewModel.selectedDepartmentFilter.collectAsState()
     val liveDate by viewModel.liveDate.collectAsState()
     val liveTime by viewModel.liveTime.collectAsState()
     val rawStudents by viewModel.studentsInSelectedSemester.collectAsState()
@@ -231,7 +234,7 @@ fun TakeAttendanceScreen(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Subject Selector
+                // Subject Selector Dropdown
                 Box(modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(
                         value = selectedSubject,
@@ -269,6 +272,45 @@ fun TakeAttendanceScreen(
                                     subjectDropdownExpanded = false
                                 }
                             )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Branch / Department Filter Chips
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Branch Filter:",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        items(BRANCH_CHIPS) { branch ->
+                            val isSelected = selectedDeptFilter == branch ||
+                                    (selectedDeptFilter == "ALL" && selectedSubject.startsWith(branch))
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(
+                                        if (isSelected) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.surfaceVariant
+                                    )
+                                    .clickable { viewModel.setDepartmentFilter(branch) }
+                                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = branch,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                )
+                            }
                         }
                     }
                 }
@@ -345,7 +387,7 @@ fun TakeAttendanceScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No students found in Semester $selectedSemester",
+                        text = "No students found in Semester $selectedSemester matching selected course/branch",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
