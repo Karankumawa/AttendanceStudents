@@ -3,6 +3,7 @@ package com.example.attendencestudents.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.attendencestudents.data.auth.AuthManager
+import com.example.attendencestudents.data.auth.UserRole
 import com.example.attendencestudents.data.model.ActivityLog
 import com.example.attendencestudents.data.model.AttendanceStatus
 import com.example.attendencestudents.data.model.SemesterSummary
@@ -121,12 +122,12 @@ class AttendanceViewModel(
         _liveTime.value = SimpleDateFormat("hh:mm:ss a", Locale.getDefault()).format(now)
     }
 
-    suspend fun login(email: String, pass: String): Result<Boolean> {
-        val result = AuthManager.login(email, pass, repository.supabaseClient, repository.students.value)
+    suspend fun login(email: String, pass: String, selectedRole: UserRole = UserRole.STUDENT): Result<Boolean> {
+        val result = AuthManager.login(email, pass, selectedRole, repository.supabaseClient, repository.students.value)
         return if (result.isSuccess) {
             Result.success(true)
         } else {
-            Result.failure(result.exceptionOrNull() ?: Exception("Invalid student, please contact admin."))
+            Result.failure(result.exceptionOrNull() ?: Exception("Invalid credentials. Please contact admin."))
         }
     }
 

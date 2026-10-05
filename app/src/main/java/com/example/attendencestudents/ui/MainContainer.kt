@@ -92,8 +92,8 @@ fun MainContainer(
 
     if (!isLoggedIn) {
         LoginScreen(
-            onLoginSuccess = { email, pass ->
-                viewModel.login(email, pass)
+            onLoginSuccess = { email, pass, role ->
+                viewModel.login(email, pass, role)
             }
         )
     } else {

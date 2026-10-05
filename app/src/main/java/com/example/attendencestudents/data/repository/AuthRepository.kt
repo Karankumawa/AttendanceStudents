@@ -15,8 +15,14 @@ class AuthRepository(
     val isLoggedIn: StateFlow<Boolean> = AuthManager.isLoggedIn
     val currentUser: StateFlow<User?> = AuthManager.currentUser
 
-    suspend fun signIn(emailInput: String, passwordInput: String, registeredStudents: List<Student> = emptyList()): Result<User> {
-        return AuthManager.login(emailInput, passwordInput, supabaseClient, registeredStudents)
+    suspend fun signIn(emailInput: String, passwordInput: String, targetRole: UserRole = UserRole.STUDENT, registeredStudents: List<Student> = emptyList()): Result<User> {
+        return AuthManager.login(
+            emailInput = emailInput,
+            passwordInput = passwordInput,
+            targetRole = targetRole,
+            supabaseClient = supabaseClient,
+            registeredStudents = registeredStudents
+        )
     }
 
     suspend fun getUserProfile(userId: String): Result<UserProfile> {

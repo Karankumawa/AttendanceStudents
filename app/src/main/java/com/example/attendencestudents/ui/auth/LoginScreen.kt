@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,11 +16,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
@@ -58,12 +55,13 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.attendencestudents.data.auth.UserRole
 import com.example.attendencestudents.ui.components.AppLogo
 import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: suspend (String, String) -> Result<Boolean>
+    onLoginSuccess: suspend (String, String, UserRole) -> Result<Boolean>
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -325,8 +323,9 @@ fun LoginScreen(
                                 } else {
                                     isLoading = true
                                     errorMessage = null
+                                    val targetRole = if (isStudentTab) UserRole.STUDENT else UserRole.ADMIN
                                     coroutineScope.launch {
-                                        val res = onLoginSuccess(email, password)
+                                        val res = onLoginSuccess(email, password, targetRole)
                                         isLoading = false
                                         if (res.isFailure) {
                                             errorMessage = res.exceptionOrNull()?.message
@@ -360,34 +359,6 @@ fun LoginScreen(
                                 )
                             }
                         }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Database Status Pill
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = Color(0xFF10B981).copy(alpha = 0.15f)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CloudDone,
-                            contentDescription = null,
-                            tint = Color(0xFF047857),
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Supabase Live Database Connected",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = Color(0xFF047857),
-                                fontWeight = FontWeight.Bold
-                            )
-                        )
                     }
                 }
             }
