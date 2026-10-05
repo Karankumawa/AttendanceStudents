@@ -1,19 +1,31 @@
 package com.example.attendencestudents.ui.auth
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
@@ -36,6 +48,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -56,6 +70,7 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
+    var isStudentTab by remember { mutableStateOf(true) }
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -64,7 +79,17 @@ fun LoginScreen(
         color = MaterialTheme.colorScheme.background
     ) {
         Box(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                            MaterialTheme.colorScheme.background,
+                            MaterialTheme.colorScheme.background
+                        )
+                    )
+                ),
             contentAlignment = Alignment.Center
         ) {
             Column(
@@ -74,43 +99,128 @@ fun LoginScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                // Header Unique App Logo
-                AppLogo(size = 84.dp, showBadge = true)
+                // Header App Logo Emblem
+                AppLogo(size = 88.dp, showBadge = true)
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "Student Attendance Portal",
+                    text = "Attendance Portal",
                     style = MaterialTheme.typography.headlineMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        fontSize = 22.sp
+                        fontSize = 24.sp
                     ),
                     color = MaterialTheme.colorScheme.onBackground
                 )
 
                 Text(
-                    text = "Enter student credentials to access portal",
+                    text = "Sign in with your registered credentials",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.secondary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-                // Login Card
+                // Role Segmented Switcher (Student vs Admin)
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(4.dp)
+                    ) {
+                        // Student Tab
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(
+                                    if (isStudentTab) MaterialTheme.colorScheme.primary
+                                    else Color.Transparent
+                                )
+                                .clickable {
+                                    isStudentTab = true
+                                    errorMessage = null
+                                }
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = if (isStudentTab) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Student Portal",
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isStudentTab) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                )
+                            }
+                        }
+
+                        // Admin Tab
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(
+                                    if (!isStudentTab) MaterialTheme.colorScheme.primary
+                                    else Color.Transparent
+                                )
+                                .clickable {
+                                    isStudentTab = false
+                                    errorMessage = null
+                                }
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.School,
+                                    contentDescription = null,
+                                    tint = if (!isStudentTab) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Admin Access",
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (!isStudentTab) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Glassmorphic Login Card
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
                     ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                 ) {
                     Column(
                         modifier = Modifier.padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "Portal Login",
+                            text = if (isStudentTab) "Student Sign In" else "Admin Sign In",
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                             modifier = Modifier.fillMaxWidth(),
                             textAlign = TextAlign.Start
@@ -118,26 +228,31 @@ fun LoginScreen(
 
                         Spacer(modifier = Modifier.height(18.dp))
 
-                        // Email Field
+                        // Email / Username Field
                         OutlinedTextField(
                             value = email,
                             onValueChange = {
                                 email = it
                                 errorMessage = null
                             },
-                            label = { Text("Email Address") },
+                            label = { Text(if (isStudentTab) "Email / Roll Number" else "Admin Email") },
                             leadingIcon = {
-                                Icon(Icons.Default.Email, contentDescription = "Email")
+                                Icon(
+                                    imageVector = if (isStudentTab) Icons.Default.Person else Icons.Default.Email,
+                                    contentDescription = "Email/Username"
+                                )
                             },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             enabled = !isLoading,
+                            shape = RoundedCornerShape(14.dp),
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Email,
                                 autoCorrectEnabled = false
                             ),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                             )
                         )
 
@@ -166,27 +281,37 @@ fun LoginScreen(
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             enabled = !isLoading,
+                            shape = RoundedCornerShape(14.dp),
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Password,
                                 autoCorrectEnabled = false
+                            ),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                             )
                         )
 
-                        if (errorMessage != null) {
-                            Spacer(modifier = Modifier.height(14.dp))
-                            Card(
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)),
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Text(
-                                    text = errorMessage!!,
-                                    color = MaterialTheme.colorScheme.error,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(10.dp),
-                                    textAlign = TextAlign.Center
-                                )
+                        AnimatedVisibility(
+                            visible = errorMessage != null,
+                            enter = fadeIn(),
+                            exit = fadeOut()
+                        ) {
+                            Column {
+                                Spacer(modifier = Modifier.height(14.dp))
+                                Surface(
+                                    color = MaterialTheme.colorScheme.errorContainer,
+                                    shape = RoundedCornerShape(10.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = errorMessage ?: "",
+                                        color = MaterialTheme.colorScheme.onErrorContainer,
+                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                        modifier = Modifier.padding(12.dp),
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
                             }
                         }
 
@@ -196,7 +321,7 @@ fun LoginScreen(
                         Button(
                             onClick = {
                                 if (email.isBlank() || password.isBlank()) {
-                                    errorMessage = "Please enter Email and Password"
+                                    errorMessage = "Please enter Email and Password."
                                 } else {
                                     isLoading = true
                                     errorMessage = null
@@ -204,7 +329,8 @@ fun LoginScreen(
                                         val res = onLoginSuccess(email, password)
                                         isLoading = false
                                         if (res.isFailure) {
-                                            errorMessage = res.exceptionOrNull()?.message ?: "Invalid student, please contact admin."
+                                            errorMessage = res.exceptionOrNull()?.message
+                                                ?: "Invalid credentials. Please contact admin."
                                         }
                                     }
                                 }
@@ -212,8 +338,8 @@ fun LoginScreen(
                             enabled = !isLoading,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(50.dp),
-                            shape = RoundedCornerShape(12.dp),
+                                .height(52.dp),
+                            shape = RoundedCornerShape(14.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primary
                             )
@@ -226,14 +352,42 @@ fun LoginScreen(
                                 )
                             } else {
                                 Text(
-                                    text = "LOGIN TO PORTAL",
+                                    text = if (isStudentTab) "SIGN IN TO STUDENT PORTAL" else "SIGN IN TO ADMIN PORTAL",
                                     style = MaterialTheme.typography.labelLarge.copy(
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 15.sp
+                                        fontSize = 14.sp
                                     )
                                 )
                             }
                         }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Database Status Pill
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color(0xFF10B981).copy(alpha = 0.15f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CloudDone,
+                            contentDescription = null,
+                            tint = Color(0xFF047857),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Supabase Live Database Connected",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = Color(0xFF047857),
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
                     }
                 }
             }

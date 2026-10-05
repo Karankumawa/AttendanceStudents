@@ -25,7 +25,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DateRange
@@ -34,14 +33,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -49,9 +44,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,18 +56,7 @@ import com.example.attendencestudents.data.model.AttendanceStatus
 import com.example.attendencestudents.data.model.Student
 import com.example.attendencestudents.ui.AttendanceViewModel
 
-val SUBJECT_OPTIONS = listOf(
-    "All Courses",
-    "CSE - Data Structures & Algorithms",
-    "CSE - Operating Systems & Networks",
-    "ECE - Digital Electronics & Signals",
-    "ECE - Communication Systems",
-    "EEE - Power Electronics & Drives",
-    "CIVIL - Structural Analysis & Design",
-    "MECH - Robotics & Automation"
-)
-
-val BRANCH_CHIPS = listOf("ALL", "CSE", "ECE", "EEE", "CIVIL", "MECH")
+val BRANCH_CATEGORIES = listOf("ALL", "CSE", "ECE", "EEE", "CIVIL", "MECH")
 
 @Composable
 fun TakeAttendanceScreen(
@@ -82,15 +64,12 @@ fun TakeAttendanceScreen(
     snackbarHostState: SnackbarHostState
 ) {
     val selectedSemester by viewModel.selectedSemester.collectAsState()
-    val selectedSubject by viewModel.selectedSubject.collectAsState()
     val selectedDeptFilter by viewModel.selectedDepartmentFilter.collectAsState()
     val liveDate by viewModel.liveDate.collectAsState()
     val liveTime by viewModel.liveTime.collectAsState()
     val rawStudents by viewModel.studentsInSelectedSemester.collectAsState()
     val studentAttendanceMap by viewModel.studentAttendanceMap.collectAsState()
     val submissionMessage by viewModel.submissionMessage.collectAsState()
-
-    var subjectDropdownExpanded by remember { mutableStateOf(false) }
 
     // Sorted students by Department & Roll Number
     val students = remember(rawStudents) {
@@ -166,7 +145,7 @@ fun TakeAttendanceScreen(
                 }
             }
 
-            // Session Configuration Card
+            // Session & Branch Filter Bar
             Column(modifier = Modifier.padding(16.dp)) {
                 // Live Session Banner Card
                 Card(
@@ -233,80 +212,35 @@ fun TakeAttendanceScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // Subject Selector Dropdown
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = selectedSubject,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Subject / Course") },
-                        trailingIcon = {
-                            IconButton(onClick = { subjectDropdownExpanded = true }) {
-                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Subject")
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { subjectDropdownExpanded = true },
-                        singleLine = true
-                    )
-
-                    DropdownMenu(
-                        expanded = subjectDropdownExpanded,
-                        onDismissRequest = { subjectDropdownExpanded = false },
-                        modifier = Modifier.fillMaxWidth(0.85f)
-                    ) {
-                        SUBJECT_OPTIONS.forEach { subj ->
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = subj,
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontWeight = if (subj == selectedSubject) FontWeight.Bold else FontWeight.Normal
-                                        )
-                                    )
-                                },
-                                onClick = {
-                                    viewModel.setSubject(subj)
-                                    subjectDropdownExpanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Branch / Department Filter Chips
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                // Branch / Department Category Selector Chips
+                Column {
                     Text(
-                        text = "Branch Filter:",
+                        text = "Filter Branch / Department",
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(end = 8.dp)
+                        modifier = Modifier.padding(bottom = 6.dp)
                     )
 
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        items(BRANCH_CHIPS) { branch ->
-                            val isSelected = selectedDeptFilter == branch ||
-                                    (selectedDeptFilter == "ALL" && selectedSubject.startsWith(branch))
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(BRANCH_CATEGORIES) { branch ->
+                            val isSelected = selectedDeptFilter == branch
 
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(12.dp))
+                                    .clip(RoundedCornerShape(14.dp))
                                     .background(
                                         if (isSelected) MaterialTheme.colorScheme.primary
                                         else MaterialTheme.colorScheme.surfaceVariant
                                     )
                                     .clickable { viewModel.setDepartmentFilter(branch) }
-                                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                                    .padding(horizontal = 14.dp, vertical = 8.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = branch,
-                                    style = MaterialTheme.typography.labelSmall.copy(
+                                    text = if (branch == "ALL") "ALL BRANCHES" else "$branch BRANCH",
+                                    style = MaterialTheme.typography.labelMedium.copy(
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                         color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -316,7 +250,7 @@ fun TakeAttendanceScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
                 // Quick Action Buttons & Status Counters
                 Row(
@@ -388,7 +322,7 @@ fun TakeAttendanceScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No students found in Semester $selectedSemester matching selected course/branch",
+                        text = "No students found in Semester $selectedSemester for selected branch",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
