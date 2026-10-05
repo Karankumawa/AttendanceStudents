@@ -64,6 +64,7 @@ import com.example.attendencestudents.data.model.Student
 import com.example.attendencestudents.ui.AttendanceViewModel
 
 val SUBJECT_OPTIONS = listOf(
+    "All Courses",
     "CSE - Data Structures & Algorithms",
     "CSE - Operating Systems & Networks",
     "ECE - Digital Electronics & Signals",
